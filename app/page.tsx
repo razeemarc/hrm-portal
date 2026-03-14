@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, FileCheck, Offer, Building2 } from "lucide-react";
+import { Users, FileCheck, ScrollText, Building2 } from "lucide-react";
 
 export default function Home() {
   return (
@@ -60,7 +60,7 @@ export default function Home() {
 
           <Card>
             <CardHeader>
-              <Offer className="h-8 w-8 text-purple-600 mb-2" />
+              <ScrollText className="h-8 w-8 text-purple-600 mb-2" />
               <CardTitle>Offer Letters</CardTitle>
             </CardHeader>
             <CardContent>

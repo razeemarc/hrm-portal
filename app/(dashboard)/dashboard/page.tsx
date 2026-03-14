@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, FileCheck, Offer, UserCheck, Clock, TrendingUp } from "lucide-react";
+import { Users, FileCheck, ScrollText, UserCheck, Clock, TrendingUp } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/lib/convex/generated";
 
@@ -51,7 +51,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Offered</CardTitle>
-            <Offer className="h-4 w-4 text-purple-500" />
+            <ScrollText className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.offered}</div>

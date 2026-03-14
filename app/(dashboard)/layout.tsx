@@ -9,7 +9,7 @@ import {
   LayoutDashboard,
   Users,
   FileCheck,
-  Offer,
+  ScrollText,
   Building2,
   Settings,
   LogOut,
@@ -22,7 +22,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Candidates", href: "/candidates", icon: Users },
   { name: "Documents", href: "/documents", icon: FileCheck },
-  { name: "Offers", href: "/offers", icon: Offer },
+  { name: "Offers", href: "/offers", icon: ScrollText },
   { name: "Employees", href: "/employees", icon: Building2 },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

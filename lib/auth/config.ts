@@ -1,33 +1,50 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
-import { convex } from "@convex-dev/auth/server";
-import { v } from "convex/server";
 import bcrypt from "bcryptjs";
 
-async function getUser(email: string) {
-  const account = await convex.runQuery(
-    async (ctx) => {
-      return await ctx.db
-        .query("accounts")
-        .withIndex("by_provider", (q) =>
-          q.eq("provider", "password").eq("providerAccountId", email)
-        )
-        .first();
-    },
-    { email }
-  );
+// Simple in-memory user store for demo (would use Convex in production)
+// Pre-seeded admin user with credentials: razeemarc@gmail.com / Razeema@2002
 
-  if (!account) return null;
+const users: Array<{
+  id: string;
+  email: string;
+  name: string;
+  passwordHash: string;
+}> = [];
 
-  const user = await convex.runQuery(
-    async (ctx) => {
-      return await ctx.db.get(account.userId);
-    },
-    {}
-  );
+// Function to initialize seeded user
+async function initSeedUser() {
+  const hash = await bcrypt.hash("Razeema@2002", 10);
+  users.push({
+    id: "1",
+    email: "razeemarc@gmail.com",
+    name: "Admin User",
+    passwordHash: hash,
+  });
+}
 
+// Run seed on module load
+initSeedUser();
+
+export async function registerUser(email: string, name: string, password: string) {
+  const existing = users.find((u) => u.email === email);
+  if (existing) {
+    throw new Error("User already exists");
+  }
+  const passwordHash = await bcrypt.hash(password, 10);
+  const user = {
+    id: Date.now().toString(),
+    email,
+    name,
+    passwordHash,
+  };
+  users.push(user);
   return user;
+}
+
+export async function getUserByEmail(email: string) {
+  return users.find((u) => u.email === email);
 }
 
 export const authConfig: NextAuthConfig = {
@@ -43,7 +60,7 @@ export const authConfig: NextAuthConfig = {
           return null;
         }
 
-        const user = await getUser(credentials.email as string);
+        const user = await getUserByEmail(credentials.email as string);
         if (!user) return null;
 
         const isValid = await bcrypt.compare(
@@ -54,7 +71,7 @@ export const authConfig: NextAuthConfig = {
         if (!isValid) return null;
 
         return {
-          id: user._id.toString(),
+          id: user.id,
           email: user.email,
           name: user.name,
         };
@@ -80,7 +97,7 @@ export const authConfig: NextAuthConfig = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET || "your-secret-key-change-in-production",
 };
