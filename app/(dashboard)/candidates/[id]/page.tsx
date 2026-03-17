@@ -107,7 +107,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
     setSaving(true);
     // In real app, call Convex mutation
     setTimeout(() => {
-      setCandidate({ ...candidate, ...data, updatedAt: Date.now() });
+      setCandidate({ ...candidate, ...data, offerType: (data.offerType || candidate.offerType) as typeof candidate.offerType, updatedAt: Date.now() });
       setSaving(false);
       toast.success("Candidate updated successfully");
     }, 1000);
@@ -117,10 +117,8 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
     <div>
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/candidates">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+        <Button variant="ghost" size="icon" render={<Link href="/candidates" />}>
+          <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{candidate.name}</h1>

@@ -28,19 +28,25 @@ export async function generateOfferLetterPDF(data: OfferData): Promise<Blob> {
     ...data,
   };
 
-  const Template = data.offerType === "intern" ? InternOfferTemplate : EmployeeOfferTemplate;
-  const blob = await pdf(<Template {...templateData />).toBlob();
+  const Template =
+    data.offerType === "intern"
+      ? InternOfferTemplate
+      : EmployeeOfferTemplate;
+
+  const blob = await pdf(<Template {...templateData} />).toBlob();
   return blob;
 }
 
 export async function downloadOfferLetter(data: OfferData) {
   const blob = await generateOfferLetterPDF(data);
   const url = URL.createObjectURL(blob);
+
   const link = document.createElement("a");
   link.href = url;
-  link.download = `Offer_Letter_${data.candidateName.replace(/\s+/g, "_")}.pdf`;
+  link.download = `${data.candidateName}-offer-letter.pdf`;
   document.body.appendChild(link);
   link.click();
+
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }

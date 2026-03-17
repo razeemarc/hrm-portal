@@ -2,8 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FileCheck, ScrollText, UserCheck, Clock, TrendingUp } from "lucide-react";
-import { useQuery } from "convex/react";
-import { api } from "@/lib/convex/generated";
 
 export default function DashboardPage() {
   // We'll use mock data for now since Convy might not be running

@@ -128,6 +128,9 @@ export default function CandidatesPage() {
     const newCandidate = {
       _id: Date.now().toString(),
       ...data,
+      phone: data.phone || "",
+      role: data.role || "",
+      department: data.department || "",
       status: "invited",
       createdAt: Date.now(),
     };
@@ -151,11 +154,9 @@ export default function CandidatesPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Candidates</h1>
         <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Invite Candidate
-            </Button>
+          <DialogTrigger render={<Button />}>
+            <Plus className="h-4 w-4 mr-2" />
+            Invite Candidate
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -251,7 +252,7 @@ export default function CandidatesPage() {
             className="pl-10"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v || "all")}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
