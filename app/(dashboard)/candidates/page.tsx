@@ -43,8 +43,25 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 
+const candidateSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional(),
+  role: z.string().optional(),
+  department: z.string().optional(),
+  employeeType: z.string().min(1, "Please select an employee type"),
+});
+
+type CandidateFormValues = z.infer<typeof candidateSchema>;
+
+interface Candidate extends CandidateFormValues {
+  _id: string;
+  status: string;
+  createdAt: number;
+}
+
 // Mock data - will be replaced with Convex query
-const mockCandidates = [
+const mockCandidates: Candidate[] = [
   {
     _id: "1",
     name: "John Doe",
@@ -53,6 +70,7 @@ const mockCandidates = [
     role: "Frontend Developer",
     department: "Engineering",
     status: "pending",
+    employeeType: "employee",
     createdAt: Date.now() - 86400000 * 3,
   },
   {
@@ -63,6 +81,7 @@ const mockCandidates = [
     role: "Backend Developer",
     department: "Engineering",
     status: "in_review",
+    employeeType: "employee",
     createdAt: Date.now() - 86400000 * 5,
   },
   {
@@ -73,6 +92,7 @@ const mockCandidates = [
     role: "UI/UX Designer",
     department: "Design",
     status: "offered",
+    employeeType: "intern",
     createdAt: Date.now() - 86400000 * 10,
   },
   {
@@ -83,19 +103,10 @@ const mockCandidates = [
     role: "Marketing Manager",
     department: "Marketing",
     status: "hired",
+    employeeType: "employee",
     createdAt: Date.now() - 86400000 * 15,
   },
 ];
-
-const candidateSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().optional(),
-  role: z.string().optional(),
-  department: z.string().optional(),
-});
-
-type CandidateFormValues = z.infer<typeof candidateSchema>;
 
 const statusColors: Record<string, string> = {
   invited: "bg-blue-100 text-blue-800",
@@ -110,7 +121,7 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [candidates, setCandidates] = useState(mockCandidates);
+  const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
 
   const form = useForm<CandidateFormValues>({
     resolver: zodResolver(candidateSchema),
@@ -120,6 +131,7 @@ export default function CandidatesPage() {
       phone: "",
       role: "",
       department: "",
+      employeeType: "employee",
     },
   });
 
@@ -232,6 +244,27 @@ export default function CandidatesPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="employeeType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Employee Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="employee">Employee</SelectItem>
+                          <SelectItem value="intern">Intern</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <Button type="submit" className="w-full">
                   Send Invitation
                 </Button>
@@ -277,6 +310,7 @@ export default function CandidatesPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Department</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Added</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -300,6 +334,9 @@ export default function CandidatesPage() {
                     </TableCell>
                     <TableCell>{candidate.role || "-"}</TableCell>
                     <TableCell>{candidate.department || "-"}</TableCell>
+                    <TableCell className="capitalize">
+                      {candidate.employeeType || "-"}
+                    </TableCell>
                     <TableCell>
                       <Badge className={statusColors[candidate.status]}>
                         {candidate.status.replace("_", " ")}
