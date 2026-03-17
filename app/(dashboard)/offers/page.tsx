@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -37,7 +37,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollText, Plus, Send, Eye, FileText } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon, Plus, Send, Eye, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -86,8 +93,8 @@ const offerSchema = z.object({
   role: z.string().min(1, "Role is required"),
   department: z.string().min(1, "Department is required"),
   package: z.number().min(0, "Package must be positive"),
-  startDate: z.string().min(1, "Start date is required"),
-  expiryDate: z.string().min(1, "Expiry date is required"),
+  startDate: z.date({ message: "Start date is required" }),
+  expiryDate: z.date({ message: "Expiry date is required" }),
 });
 
 type OfferFormValues = z.infer<typeof offerSchema>;
@@ -112,8 +119,6 @@ export default function OffersPage() {
       role: "",
       department: "",
       package: 0,
-      startDate: "",
-      expiryDate: "",
     },
   });
 
@@ -127,8 +132,8 @@ export default function OffersPage() {
       role: data.role,
       department: data.department,
       package: data.package,
-      startDate: new Date(data.startDate).getTime(),
-      expiryDate: new Date(data.expiryDate).getTime(),
+      startDate: data.startDate.getTime(),
+      expiryDate: data.expiryDate.getTime(),
       status: "pending",
       createdAt: Date.now(),
     };
@@ -143,11 +148,9 @@ export default function OffersPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Offer Letters</h1>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Offer
-            </Button>
+          <DialogTrigger render={<Button />}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Offer
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
@@ -254,11 +257,37 @@ export default function OffersPage() {
                     control={form.control}
                     name="startDate"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Start Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
+                        <Popover>
+                          <PopoverTrigger
+                            render={
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              />
+                            }
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -267,11 +296,37 @@ export default function OffersPage() {
                     control={form.control}
                     name="expiryDate"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Expiry Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
+                        <Popover>
+                          <PopoverTrigger
+                            render={
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              />
+                            }
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -369,10 +424,8 @@ export default function OffersPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/offer/${offer._id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
+                        <Button variant="outline" size="sm" render={<Link href={`/offer/${offer._id}`} />}>
+                          <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="sm">
                           <Send className="h-4 w-4" />
