@@ -20,6 +20,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 // Mock invitation data - real app would use useQuery(api.invitations.getInvitationByToken, { token })
 const getMockInvite = (token: string) => {
@@ -59,8 +61,19 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
-  const mockInvitation = getMockInvite(token);
   const router = useRouter();
+
+  // Convex integration
+  const invitation = useQuery(api.functions.invitations.getInvitationByToken, { token });
+  const updateCandidateMutation = useMutation(api.functions.candidates.updateCandidate);
+  const getCandidateByEmail = useQuery(api.functions.candidates.getCandidateByEmail, 
+    invitation ? { email: invitation.email } : "skip"
+  );
+  const useInvitationMutation = useMutation(api.functions.invitations.useInvitation);
+
+  const mockInvitation = getMockInvite(token);
+  const activeInvitation = invitation || (token.startsWith("mock-") ? mockInvitation : null);
+
   const [step, setStep] = useState<"profile" | "documents">("profile");
   const [documents, setDocuments] = useState<Record<string, File | null>>({});
   const [uploading, setUploading] = useState(false);
@@ -78,10 +91,20 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     setDocuments((prev) => ({ ...prev, [type]: file }));
   };
 
-  const onProfileSubmit = (data: ProfileFormValues) => {
-    // In real app, save profile first
-    setStep("documents");
-    toast.success("Profile saved! Please upload your documents.");
+  const onProfileSubmit = async (data: ProfileFormValues) => {
+    try {
+      if (activeInvitation && getCandidateByEmail) {
+        await updateCandidateMutation({
+          id: getCandidateByEmail._id,
+          name: data.name,
+          phone: data.phone,
+        });
+      }
+      setStep("documents");
+      toast.success("Profile saved! Please upload your documents.");
+    } catch (error) {
+      toast.error("Failed to save profile");
+    }
   };
 
   const handleDocumentUpload = async () => {
@@ -135,18 +158,29 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         </div>
 
         {/* Invitation Details */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3 text-sm">
-              <AlertCircle className="h-5 w-5 text-blue-500" />
-              <span>
-                You&apos;ve been invited to apply for the position of{" "}
-                <strong>{mockInvitation.role}</strong> in the{" "}
-                <strong>{mockInvitation.department}</strong> department.
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        {!activeInvitation ? (
+          <Card className="mb-6 border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 text-sm text-red-800">
+                <AlertCircle className="h-5 w-5" />
+                <span>Invalid or expired invitation link. Please contact HR.</span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 text-sm">
+                <AlertCircle className="h-5 w-5 text-blue-500" />
+                <span>
+                  You&apos;ve been invited to apply for the position of{" "}
+                  <strong>{activeInvitation.role}</strong> in the{" "}
+                  <strong>{activeInvitation.department}</strong> department.
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs value={step} className="w-full">
           <TabsList className="w-full mb-6">
@@ -195,7 +229,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                     />
                     <div className="p-4 bg-gray-50 rounded-lg">
                       <div className="text-sm text-gray-600">
-                        <strong>Email:</strong> {mockInvitation.email}
+                        <strong>Email:</strong> {activeInvitation?.email}
                       </div>
                     </div>
                     <Button type="submit" className="w-full">

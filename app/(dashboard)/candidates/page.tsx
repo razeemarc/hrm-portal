@@ -42,6 +42,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 const candidateSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -49,7 +51,7 @@ const candidateSchema = z.object({
   phone: z.string().optional(),
   role: z.string().optional(),
   department: z.string().optional(),
-  employeeType: z.string().min(1, "Please select an employee type"),
+  offerType: z.string().min(1, "Please select an offer type"),
 });
 
 type CandidateFormValues = z.infer<typeof candidateSchema>;
@@ -121,7 +123,11 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
+  
+  // Convex integration
+  const candidatesData = useQuery(api.functions.candidates.getCandidates) || [];
+  const inviteCandidateMutation = useMutation(api.functions.candidates.createCandidate);
+  const sendInviteMutation = useMutation(api.functions.invitations.sendInvite);
 
   const form = useForm<CandidateFormValues>({
     resolver: zodResolver(candidateSchema),
@@ -131,28 +137,40 @@ export default function CandidatesPage() {
       phone: "",
       role: "",
       department: "",
-      employeeType: "employee",
+      offerType: "employee",
     },
   });
 
-  const onSubmit = (data: CandidateFormValues) => {
-    // In real app, call Convex mutation
-    const newCandidate = {
-      _id: Date.now().toString(),
-      ...data,
-      phone: data.phone || "",
-      role: data.role || "",
-      department: data.department || "",
-      status: "invited",
-      createdAt: Date.now(),
-    };
-    setCandidates([newCandidate, ...candidates]);
-    setIsInviteOpen(false);
-    form.reset();
-    toast.success("Invitation sent successfully!");
+  const onSubmit = async (data: CandidateFormValues) => {
+    try {
+      // First create/update candidate record
+      await inviteCandidateMutation({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        role: data.role,
+        department: data.department,
+        status: "invited",
+        offerType: data.offerType,
+      });
+
+      // Then send the invite (token generation)
+      await sendInviteMutation({
+        email: data.email,
+        role: data.role,
+        department: data.department,
+      });
+
+      setIsInviteOpen(false);
+      form.reset();
+      toast.success("Invitation sent successfully!");
+    } catch (error) {
+      toast.error("Failed to send invitation");
+      console.error(error);
+    }
   };
 
-  const filteredCandidates = candidates.filter((candidate) => {
+  const filteredCandidates = candidatesData.filter((candidate) => {
     const matchesSearch =
       candidate.name.toLowerCase().includes(search.toLowerCase()) ||
       candidate.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -178,17 +196,22 @@ export default function CandidatesPage() {
                 className="bg-white border-blue-200 focus-visible:ring-blue-500"
               />
               <Button 
-                onClick={() => {
+                onClick={async () => {
                   const emailInput = document.getElementById("direct-email") as HTMLInputElement;
                   const email = emailInput?.value;
                   if (!email || !email.includes("@")) {
                     toast.error("Please enter a valid email");
                     return;
                   }
-                  // Encode email in token for mock portal access
-                  const encodedEmail = btoa(email);
-                  const token = `mock-${encodedEmail}`;
-                  window.open(`${window.location.host === "localhost:3000" ? "http://" : "https://"}${window.location.host}/invite/${token}`, "_blank");
+                  
+                  try {
+                    const result = await sendInviteMutation({ email });
+                    const portalLink = `${window.location.protocol}//${window.location.host}/invite/${result.token}`;
+                    toast.success("Invitation generated & redirected!");
+                    window.open(portalLink, "_blank");
+                  } catch (error) {
+                    toast.error("Failed to generate invite");
+                  }
                 }}
                 className="bg-blue-600 hover:bg-blue-700"
               >
@@ -221,21 +244,22 @@ export default function CandidatesPage() {
                 </div>
                 <Button 
                   className="w-full" 
-                  onClick={() => {
+                  onClick={async () => {
                     const emailInput = document.getElementById("quick-invite-email") as HTMLInputElement;
                     const email = emailInput?.value;
                     if (!email || !email.includes("@")) {
                       toast.error("Please enter a valid email");
                       return;
                     }
-                    // Generate a fake token for now (real app would use sendInvite mutation)
-                    const token = "mock-" + Math.random().toString(36).substring(7);
-                    // Use a slightly different path for portal? Or same?
-                    // Usually portal is at /invite/[token]
-                    const portalLink = `${window.location.origin}/invite/${token}`;
-                    toast.success("Invitation generated!");
-                    // Open in new tab (straight to the form)
-                    window.open(portalLink, "_blank");
+                    
+                    try {
+                      const result = await sendInviteMutation({ email });
+                      const portalLink = `${window.location.protocol}//${window.location.host}/invite/${result.token}`;
+                      toast.success("Invitation generated & redirected!");
+                      window.open(portalLink, "_blank");
+                    } catch (error) {
+                      toast.error("Failed to generate invite");
+                    }
                   }}
                 >
                   Generate & Go to Form
@@ -325,10 +349,10 @@ export default function CandidatesPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="employeeType"
+                  name="offerType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Employee Type</FormLabel>
+                      <FormLabel>Offer Type</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -415,7 +439,7 @@ export default function CandidatesPage() {
                     <TableCell>{candidate.role || "-"}</TableCell>
                     <TableCell>{candidate.department || "-"}</TableCell>
                     <TableCell className="capitalize">
-                      {candidate.employeeType || "-"}
+                      {candidate.offerType || "-"}
                     </TableCell>
                     <TableCell>
                       <Badge className={statusColors[candidate.status]}>
@@ -429,12 +453,19 @@ export default function CandidatesPage() {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => {
-                          const encodedEmail = btoa(candidate.email);
-                          const token = `mock-${encodedEmail}`;
-                          const portalLink = `${window.location.host === "localhost:3000" ? "http://" : "https://"}${window.location.host}/invite/${token}`;
-                          toast.success(`Invite link generated for ${candidate.name}`);
-                          window.open(portalLink, "_blank");
+                        onClick={async () => {
+                          try {
+                            const result = await sendInviteMutation({ 
+                              email: candidate.email,
+                              role: candidate.role,
+                              department: candidate.department
+                            });
+                            const portalLink = `${window.location.protocol}//${window.location.host}/invite/${result.token}`;
+                            toast.success(`Invite link generated for ${candidate.name}`);
+                            window.open(portalLink, "_blank");
+                          } catch (error) {
+                            toast.error("Failed to generate invite");
+                          }
                         }}
                       >
                         <Mail className="h-4 w-4" />
