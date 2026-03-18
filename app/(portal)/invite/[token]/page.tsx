@@ -21,14 +21,25 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 
-// Mock invitation data (would be fetched from Convex)
-const mockInvitation = {
-  _id: "inv1",
-  token: "placeholder",
-  email: "candidate@example.com",
-  role: "Frontend Developer",
-  department: "Engineering",
-  expiresAt: Date.now() + 86400000 * 7,
+// Mock invitation data - real app would use useQuery(api.invitations.getInvitationByToken, { token })
+const getMockInvite = (token: string) => {
+  let decodedEmail = "candidate@example.com";
+  if (token.startsWith("mock-")) {
+    try {
+      decodedEmail = atob(token.replace("mock-", ""));
+    } catch (e) {
+      decodedEmail = "invalid@example.com";
+    }
+  }
+
+  return {
+    _id: "inv1",
+    token: token,
+    email: decodedEmail,
+    role: "Frontend Developer",
+    department: "Engineering",
+    expiresAt: Date.now() + 86400000 * 7,
+  };
 };
 
 // Document types to upload
@@ -48,6 +59,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
+  const mockInvitation = getMockInvite(token);
   const router = useRouter();
   const [step, setStep] = useState<"profile" | "documents">("profile");
   const [documents, setDocuments] = useState<Record<string, File | null>>({});

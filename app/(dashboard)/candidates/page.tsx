@@ -162,23 +162,102 @@ export default function CandidatesPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-6">
+      {/* Quick Access Card */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900">Direct Portal Invite</h3>
+              <p className="text-sm text-blue-700">Enter a candidate's email to go straight to their portal form.</p>
+            </div>
+            <div className="flex w-full md:w-auto gap-2">
+              <Input 
+                id="direct-email" 
+                placeholder="candidate@example.com" 
+                className="bg-white border-blue-200 focus-visible:ring-blue-500"
+              />
+              <Button 
+                onClick={() => {
+                  const emailInput = document.getElementById("direct-email") as HTMLInputElement;
+                  const email = emailInput?.value;
+                  if (!email || !email.includes("@")) {
+                    toast.error("Please enter a valid email");
+                    return;
+                  }
+                  // Encode email in token for mock portal access
+                  const encodedEmail = btoa(email);
+                  const token = `mock-${encodedEmail}`;
+                  window.open(`${window.location.host === "localhost:3000" ? "http://" : "https://"}${window.location.host}/invite/${token}`, "_blank");
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Go to Form
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Candidates</h1>
-        <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-          <DialogTrigger render={<Button />}>
-            <Plus className="h-4 w-4 mr-2" />
-            Invite Candidate
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Invite New Candidate</DialogTitle>
-              <DialogDescription>
-                Send an invitation link to a candidate to complete their profile.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="flex gap-2">
+          {/* Quick Invite Form */}
+          <Dialog>
+            <DialogTrigger render={<Button variant="outline" />}>
+              <Mail className="h-4 w-4 mr-2" />
+              Quick Portal Access
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Access Candidate Portal</DialogTitle>
+                <DialogDescription>
+                  Enter a candidate's email to generate an invite and go straight to their portal form.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <FormLabel>Candidate Email</FormLabel>
+                  <Input placeholder="candidate@example.com" id="quick-invite-email" />
+                </div>
+                <Button 
+                  className="w-full" 
+                  onClick={() => {
+                    const emailInput = document.getElementById("quick-invite-email") as HTMLInputElement;
+                    const email = emailInput?.value;
+                    if (!email || !email.includes("@")) {
+                      toast.error("Please enter a valid email");
+                      return;
+                    }
+                    // Generate a fake token for now (real app would use sendInvite mutation)
+                    const token = "mock-" + Math.random().toString(36).substring(7);
+                    // Use a slightly different path for portal? Or same?
+                    // Usually portal is at /invite/[token]
+                    const portalLink = `${window.location.origin}/invite/${token}`;
+                    toast.success("Invitation generated!");
+                    // Open in new tab (straight to the form)
+                    window.open(portalLink, "_blank");
+                  }}
+                >
+                  Generate & Go to Form
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+            <DialogTrigger render={<Button />}>
+              <Plus className="h-4 w-4 mr-2" />
+              Invite Candidate
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Invite New Candidate</DialogTitle>
+                <DialogDescription>
+                  Send an invitation link to a candidate to complete their profile.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -272,6 +351,7 @@ export default function CandidatesPage() {
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
@@ -345,7 +425,20 @@ export default function CandidatesPage() {
                     <TableCell>
                       {new Date(candidate.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right flex justify-end gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          const encodedEmail = btoa(candidate.email);
+                          const token = `mock-${encodedEmail}`;
+                          const portalLink = `${window.location.host === "localhost:3000" ? "http://" : "https://"}${window.location.host}/invite/${token}`;
+                          toast.success(`Invite link generated for ${candidate.name}`);
+                          window.open(portalLink, "_blank");
+                        }}
+                      >
+                        <Mail className="h-4 w-4" />
+                      </Button>
                       <Link href={`/candidates/${candidate._id}`}>
                         <Button variant="outline" size="sm">
                           View
