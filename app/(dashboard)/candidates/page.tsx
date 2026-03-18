@@ -48,7 +48,12 @@ import { api } from "@/convex/_generated/api";
 const candidateSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .length(10, "Phone number must be exactly 10 digits")
+    .regex(/^[0-9]+$/, "Only digits are allowed")
+    .optional()
+    .or(z.literal("")),
   role: z.string().optional(),
   department: z.string().optional(),
   offerType: z.string().min(1, "Please select an offer type"),
@@ -131,6 +136,7 @@ export default function CandidatesPage() {
 
   const form = useForm<CandidateFormValues>({
     resolver: zodResolver(candidateSchema),
+    mode: "onBlur",
     defaultValues: {
       name: "",
       email: "",
@@ -199,8 +205,9 @@ export default function CandidatesPage() {
                 onClick={async () => {
                   const emailInput = document.getElementById("direct-email") as HTMLInputElement;
                   const email = emailInput?.value;
-                  if (!email || !email.includes("@")) {
-                    toast.error("Please enter a valid email");
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (!email || !emailRegex.test(email)) {
+                    toast.error("Please enter a valid email address");
                     return;
                   }
                   
@@ -247,8 +254,9 @@ export default function CandidatesPage() {
                   onClick={async () => {
                     const emailInput = document.getElementById("quick-invite-email") as HTMLInputElement;
                     const email = emailInput?.value;
-                    if (!email || !email.includes("@")) {
-                      toast.error("Please enter a valid email");
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!email || !emailRegex.test(email)) {
+                      toast.error("Please enter a valid email address");
                       return;
                     }
                     
@@ -315,7 +323,15 @@ export default function CandidatesPage() {
                     <FormItem>
                       <FormLabel>Phone (Optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="+1234567890" {...field} />
+                        <Input 
+                          placeholder="1234567890" 
+                          maxLength={10} 
+                          {...field} 
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            field.onChange(val);
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -368,8 +384,8 @@ export default function CandidatesPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">
-                  Send Invitation
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? "Inviting..." : "Send Invitation"}
                 </Button>
               </form>
             </Form>

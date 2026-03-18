@@ -54,7 +54,10 @@ const requiredDocuments = [
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
+  phone: z
+    .string()
+    .length(10, "Phone number must be exactly 10 digits")
+    .regex(/^[0-9]+$/, "Only digits are allowed"),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -221,7 +224,15 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                         <FormItem>
                           <FormLabel>Phone Number</FormLabel>
                           <FormControl>
-                            <Input placeholder="+1234567890" {...field} />
+                            <Input 
+                              placeholder="1234567890" 
+                              maxLength={10} 
+                              {...field} 
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9]/g, "");
+                                field.onChange(val);
+                              }}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
