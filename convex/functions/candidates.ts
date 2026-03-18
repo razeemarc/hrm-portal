@@ -85,6 +85,7 @@ export const createCandidate = mutation({
     role: v.optional(v.string()),
     department: v.optional(v.string()),
     status: v.string(),
+    offerType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();

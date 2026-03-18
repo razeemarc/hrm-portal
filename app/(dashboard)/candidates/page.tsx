@@ -42,14 +42,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 const candidateSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .length(10, "Phone number must be exactly 10 digits")
+    .regex(/^[0-9]+$/, "Only digits are allowed")
+    .optional()
+    .or(z.literal("")),
   role: z.string().optional(),
   department: z.string().optional(),
-  employeeType: z.string().min(1, "Please select an employee type"),
+  offerType: z.string().min(1, "Please select an offer type"),
 });
 
 type CandidateFormValues = z.infer<typeof candidateSchema>;
@@ -121,38 +128,55 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
+  
+  // Convex integration
+  const candidatesData = useQuery(api.functions.candidates.getCandidates) || [];
+  const inviteCandidateMutation = useMutation(api.functions.candidates.createCandidate);
+  const sendInviteMutation = useMutation(api.functions.invitations.sendInvite);
 
   const form = useForm<CandidateFormValues>({
     resolver: zodResolver(candidateSchema),
+    mode: "onBlur",
     defaultValues: {
       name: "",
       email: "",
       phone: "",
       role: "",
       department: "",
-      employeeType: "employee",
+      offerType: "employee",
     },
   });
 
-  const onSubmit = (data: CandidateFormValues) => {
-    // In real app, call Convex mutation
-    const newCandidate = {
-      _id: Date.now().toString(),
-      ...data,
-      phone: data.phone || "",
-      role: data.role || "",
-      department: data.department || "",
-      status: "invited",
-      createdAt: Date.now(),
-    };
-    setCandidates([newCandidate, ...candidates]);
-    setIsInviteOpen(false);
-    form.reset();
-    toast.success("Invitation sent successfully!");
+  const onSubmit = async (data: CandidateFormValues) => {
+    try {
+      // First create/update candidate record
+      await inviteCandidateMutation({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        role: data.role,
+        department: data.department,
+        status: "invited",
+        offerType: data.offerType,
+      });
+
+      // Then send the invite (token generation)
+      await sendInviteMutation({
+        email: data.email,
+        role: data.role,
+        department: data.department,
+      });
+
+      setIsInviteOpen(false);
+      form.reset();
+      toast.success("Invitation sent successfully!");
+    } catch (error) {
+      toast.error("Failed to send invitation");
+      console.error(error);
+    }
   };
 
-  const filteredCandidates = candidates.filter((candidate) => {
+  const filteredCandidates = candidatesData.filter((candidate) => {
     const matchesSearch =
       candidate.name.toLowerCase().includes(search.toLowerCase()) ||
       candidate.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -162,23 +186,110 @@ export default function CandidatesPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-6">
+      {/* Quick Access Card */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900">Direct Portal Invite</h3>
+              <p className="text-sm text-blue-700">Enter a candidate's email to go straight to their portal form.</p>
+            </div>
+            <div className="flex w-full md:w-auto gap-2">
+              <Input 
+                id="direct-email" 
+                placeholder="candidate@example.com" 
+                className="bg-white border-blue-200 focus-visible:ring-blue-500"
+              />
+              <Button 
+                onClick={async () => {
+                  const emailInput = document.getElementById("direct-email") as HTMLInputElement;
+                  const email = emailInput?.value;
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (!email || !emailRegex.test(email)) {
+                    toast.error("Please enter a valid email address");
+                    return;
+                  }
+                  
+                  try {
+                    const result = await sendInviteMutation({ email });
+                    const portalLink = `${window.location.protocol}//${window.location.host}/invite/${result.token}`;
+                    toast.success("Invitation generated & redirected!");
+                    window.open(portalLink, "_blank");
+                  } catch (error) {
+                    toast.error("Failed to generate invite");
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Go to Form
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Candidates</h1>
-        <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-          <DialogTrigger render={<Button />}>
-            <Plus className="h-4 w-4 mr-2" />
-            Invite Candidate
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Invite New Candidate</DialogTitle>
-              <DialogDescription>
-                Send an invitation link to a candidate to complete their profile.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="flex gap-2">
+          {/* Quick Invite Form */}
+          <Dialog>
+            <DialogTrigger render={<Button variant="outline" />}>
+              <Mail className="h-4 w-4 mr-2" />
+              Quick Portal Access
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Access Candidate Portal</DialogTitle>
+                <DialogDescription>
+                  Enter a candidate's email to generate an invite and go straight to their portal form.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <FormLabel>Candidate Email</FormLabel>
+                  <Input placeholder="candidate@example.com" id="quick-invite-email" />
+                </div>
+                <Button 
+                  className="w-full" 
+                  onClick={async () => {
+                    const emailInput = document.getElementById("quick-invite-email") as HTMLInputElement;
+                    const email = emailInput?.value;
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!email || !emailRegex.test(email)) {
+                      toast.error("Please enter a valid email address");
+                      return;
+                    }
+                    
+                    try {
+                      const result = await sendInviteMutation({ email });
+                      const portalLink = `${window.location.protocol}//${window.location.host}/invite/${result.token}`;
+                      toast.success("Invitation generated & redirected!");
+                      window.open(portalLink, "_blank");
+                    } catch (error) {
+                      toast.error("Failed to generate invite");
+                    }
+                  }}
+                >
+                  Generate & Go to Form
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+            <DialogTrigger render={<Button />}>
+              <Plus className="h-4 w-4 mr-2" />
+              Invite Candidate
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Invite New Candidate</DialogTitle>
+                <DialogDescription>
+                  Send an invitation link to a candidate to complete their profile.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -212,7 +323,15 @@ export default function CandidatesPage() {
                     <FormItem>
                       <FormLabel>Phone (Optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="+1234567890" {...field} />
+                        <Input 
+                          placeholder="1234567890" 
+                          maxLength={10} 
+                          {...field} 
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            field.onChange(val);
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -246,10 +365,10 @@ export default function CandidatesPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="employeeType"
+                  name="offerType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Employee Type</FormLabel>
+                      <FormLabel>Offer Type</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -265,13 +384,14 @@ export default function CandidatesPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">
-                  Send Invitation
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? "Inviting..." : "Send Invitation"}
                 </Button>
               </form>
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
@@ -335,7 +455,7 @@ export default function CandidatesPage() {
                     <TableCell>{candidate.role || "-"}</TableCell>
                     <TableCell>{candidate.department || "-"}</TableCell>
                     <TableCell className="capitalize">
-                      {candidate.employeeType || "-"}
+                      {candidate.offerType || "-"}
                     </TableCell>
                     <TableCell>
                       <Badge className={statusColors[candidate.status]}>
@@ -345,7 +465,27 @@ export default function CandidatesPage() {
                     <TableCell>
                       {new Date(candidate.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right flex justify-end gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const result = await sendInviteMutation({ 
+                              email: candidate.email,
+                              role: candidate.role,
+                              department: candidate.department
+                            });
+                            const portalLink = `${window.location.protocol}//${window.location.host}/invite/${result.token}`;
+                            toast.success(`Invite link generated for ${candidate.name}`);
+                            window.open(portalLink, "_blank");
+                          } catch (error) {
+                            toast.error("Failed to generate invite");
+                          }
+                        }}
+                      >
+                        <Mail className="h-4 w-4" />
+                      </Button>
                       <Link href={`/candidates/${candidate._id}`}>
                         <Button variant="outline" size="sm">
                           View

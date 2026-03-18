@@ -2,11 +2,16 @@
 
 import { ReactNode } from "react";
 import { SessionProvider } from "next-auth/react";
+import { ConvexClientProvider } from "./convex-client-provider";
 
 interface ProvidersProps {
   children: ReactNode;
 }
 
 export function Providers({ children }: ProvidersProps) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return (
+    <ConvexClientProvider>
+      <SessionProvider>{children}</SessionProvider>
+    </ConvexClientProvider>
+  );
 }

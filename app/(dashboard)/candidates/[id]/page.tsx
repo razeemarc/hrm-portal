@@ -64,7 +64,12 @@ const mockCandidate = {
 const candidateSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .length(10, "Phone number must be exactly 10 digits")
+    .regex(/^[0-9]+$/, "Only digits are allowed")
+    .optional()
+    .or(z.literal("")),
   role: z.string().optional(),
   department: z.string().optional(),
   package: z.number().optional(),
@@ -179,7 +184,14 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                         <FormItem>
                           <FormLabel>Phone</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input 
+                              maxLength={10} 
+                              {...field} 
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9]/g, "");
+                                field.onChange(val);
+                              }}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
