@@ -1,5 +1,7 @@
-import { query, mutation } from "../_generated/server";
+import { query, mutation, action, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
+import { internal, api } from "../_generated/api";
+import { Resend } from "resend";
 
 // Get all invitations
 export const getInvitations = query({
@@ -115,10 +117,11 @@ export const sendInvite = mutation({
       .first();
 
     if (existing && !existing.usedAt && existing.expiresAt > Date.now()) {
-      return existing;
+      return { _id: existing._id, token: existing.token, expiresAt: existing.expiresAt };
     }
 
-    // Generate token
+    // Generate token (use uuid as crypto.randomUUID() might not be available in all environments, but uuid is in package.json)
+    // Actually crypto.randomUUID() is available in Convex.
     const token = crypto.randomUUID();
     const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -134,3 +137,5 @@ export const sendInvite = mutation({
     return { _id: invitationId, token, expiresAt };
   },
 });
+
+
