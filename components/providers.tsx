@@ -2,7 +2,9 @@
 
 import { ReactNode } from "react";
 import { SessionProvider } from "next-auth/react";
+import { StackProvider, StackTheme } from "@stackframe/stack";
 import { ConvexClientProvider } from "./convex-client-provider";
+import { stackClientApp } from "@/lib/stack/client";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -11,7 +13,11 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <ConvexClientProvider>
-      <SessionProvider>{children}</SessionProvider>
+      <StackProvider app={stackClientApp}>
+        <StackTheme>
+          <SessionProvider>{children}</SessionProvider>
+        </StackTheme>
+      </StackProvider>
     </ConvexClientProvider>
   );
-}
+}
