@@ -5,7 +5,17 @@ import { v } from "convex/values";
 export const getDocuments = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("documents").collect();
+    const docs = await ctx.db.query("documents").collect();
+
+    // Get candidate info for each document
+    const docsWithCandidates = await Promise.all(
+      docs.map(async (doc) => {
+        const candidate = await ctx.db.get(doc.candidateId);
+        return { ...doc, candidate };
+      })
+    );
+
+    return docsWithCandidates;
   },
 });
 
@@ -60,17 +70,30 @@ export const getDocumentsByStatus = query({
   },
 });
 
-// Create document (uploaded by candidate)
+// Generate a Convex file upload URL (step 1 of 2 for file uploads)
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Create document record after upload (step 2 of 2)
 export const createDocument = mutation({
   args: {
     candidateId: v.id("candidates"),
     type: v.string(),
     fileName: v.string(),
-    fileUrl: v.string(),
+    storageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
+    const fileUrl = await ctx.storage.getUrl(args.storageId);
+    if (!fileUrl) throw new Error("Failed to get file URL");
     const docId = await ctx.db.insert("documents", {
-      ...args,
+      candidateId: args.candidateId,
+      type: args.type,
+      fileName: args.fileName,
+      fileUrl,
       status: "pending",
       uploadedAt: Date.now(),
     });
@@ -83,7 +106,7 @@ export const verifyDocument = mutation({
   args: {
     id: v.id("documents"),
     status: v.string(), // "verified" or "rejected"
-    verifiedBy: v.id("users"),
+    verifiedBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.id);
@@ -94,7 +117,7 @@ export const verifyDocument = mutation({
     await ctx.db.patch(args.id, {
       status: args.status,
       verifiedAt: Date.now(),
-      verifiedBy: args.verifiedBy,
+      ...(args.verifiedBy ? { verifiedBy: args.verifiedBy } : {}),
     });
 
     // If document is verified, check if all required documents are verified
@@ -119,7 +142,7 @@ export const verifyDocument = mutation({
   },
 });
 
-// Delete document
+// Delete document (and its file from storage)
 export const deleteDocument = mutation({
   args: { id: v.id("documents") },
   handler: async (ctx, args) => {

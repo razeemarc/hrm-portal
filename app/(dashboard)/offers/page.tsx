@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,49 +46,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Plus, Send, Eye, FileText } from "lucide-react";
+import { CalendarIcon, Plus, Eye, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 import { format } from "date-fns";
-
-// Mock candidates who can receive offers
-const mockCandidates = [
-  { _id: "1", name: "John Doe", email: "john@example.com", role: "Frontend Developer", department: "Engineering" },
-  { _id: "2", name: "Jane Smith", email: "jane@example.com", role: "Backend Developer", department: "Engineering" },
-];
-
-// Mock existing offers
-const mockOffers = [
-  {
-    _id: "o1",
-    candidateId: "1",
-    candidate: { name: "John Doe", email: "john@example.com" },
-    offerType: "employee",
-    role: "Frontend Developer",
-    department: "Engineering",
-    package: 80000,
-    startDate: Date.now() + 86400000 * 14,
-    expiryDate: Date.now() + 86400000 * 28,
-    status: "pending",
-    createdAt: Date.now() - 86400000,
-  },
-  {
-    _id: "o2",
-    candidateId: "3",
-    candidate: { name: "Mike Johnson", email: "mike@example.com" },
-    offerType: "intern",
-    role: "UI/UX Designer",
-    department: "Design",
-    package: 2000,
-    startDate: Date.now() + 86400000 * 7,
-    expiryDate: Date.now() + 86400000 * 60,
-    status: "accepted",
-    createdAt: Date.now() - 86400000 * 5,
-  },
-];
 
 const offerSchema = z.object({
   candidateId: z.string().min(1, "Please select a candidate"),
@@ -107,9 +74,17 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OffersPage() {
-  const [offers, setOffers] = useState(mockOffers);
-  const [candidates] = useState(mockCandidates);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  // ── Convex queries ──
+  const offersData = useQuery(api.functions.offers.getOffers);
+  const candidatesData = useQuery(api.functions.candidates.getCandidates);
+
+  // ── Convex mutations ──
+  const createOffer = useMutation(api.functions.offers.createOffer);
+
+  const offers = offersData ?? [];
+  const candidates = candidatesData ?? [];
 
   const form = useForm<OfferFormValues>({
     resolver: zodResolver(offerSchema),
@@ -122,25 +97,25 @@ export default function OffersPage() {
     },
   });
 
-  const onSubmit = (data: OfferFormValues) => {
-    const candidate = candidates.find((c) => c._id === data.candidateId);
-    const newOffer = {
-      _id: Date.now().toString(),
-      candidateId: data.candidateId,
-      candidate: { name: candidate?.name || "", email: candidate?.email || "" },
-      offerType: data.offerType,
-      role: data.role,
-      department: data.department,
-      package: data.package,
-      startDate: data.startDate.getTime(),
-      expiryDate: data.expiryDate.getTime(),
-      status: "pending",
-      createdAt: Date.now(),
-    };
-    setOffers([newOffer, ...offers]);
-    setIsCreateOpen(false);
-    form.reset();
-    toast.success("Offer created successfully");
+  const onSubmit = async (data: OfferFormValues) => {
+    try {
+      await createOffer({
+        candidateId: data.candidateId as Id<"candidates">,
+        offerType: data.offerType,
+        role: data.role,
+        department: data.department,
+        package: data.package,
+        startDate: data.startDate.getTime(),
+        expiryDate: data.expiryDate.getTime(),
+      });
+      setIsCreateOpen(false);
+      form.reset();
+      toast.success("Offer created successfully");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error("Failed to create offer", { description: msg });
+      console.error(err);
+    }
   };
 
   return (
@@ -160,45 +135,65 @@ export default function OffersPage() {
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
+                {/* Candidate select */}
                 <FormField
                   control={form.control}
                   name="candidateId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Candidate</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={(v) => v && field.onChange(v)}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select candidate" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {candidates.map((c) => (
-                            <SelectItem key={c._id} value={c._id}>
-                              {c.name} ({c.email})
+                          {candidates.length === 0 ? (
+                            <SelectItem value="__none" disabled>
+                              No candidates found
                             </SelectItem>
-                          ))}
+                          ) : (
+                            candidates.map((c) => (
+                              <SelectItem key={c._id} value={c._id}>
+                                {c.name} ({c.email})
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Offer type */}
                 <FormField
                   control={form.control}
                   name="offerType"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Offer Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={(v) => v && field.onChange(v)}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="employee">Full-time Employee</SelectItem>
+                          <SelectItem value="employee">
+                            Full-time Employee
+                          </SelectItem>
                           <SelectItem value="intern">Intern</SelectItem>
                         </SelectContent>
                       </Select>
@@ -206,6 +201,7 @@ export default function OffersPage() {
                     </FormItem>
                   )}
                 />
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -234,25 +230,39 @@ export default function OffersPage() {
                     )}
                   />
                 </div>
+
+                {/* Package */}
                 <FormField
                   control={form.control}
                   name="package"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{form.watch("offerType") === "intern" ? "Stipend ($/month)" : "Annual Salary ($)"}</FormLabel>
+                      <FormLabel>
+                        {form.watch("offerType") === "intern"
+                          ? "Stipend ($/month)"
+                          : "Annual Salary ($)"}
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="number"
-                          placeholder={form.watch("offerType") === "intern" ? "2000" : "80000"}
+                          placeholder={
+                            form.watch("offerType") === "intern"
+                              ? "2000"
+                              : "80000"
+                          }
                           {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          onChange={(e) =>
+                            field.onChange(Number(e.target.value))
+                          }
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
                 <div className="grid grid-cols-2 gap-4">
+                  {/* Start Date */}
                   <FormField
                     control={form.control}
                     name="startDate"
@@ -292,6 +302,8 @@ export default function OffersPage() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Expiry Date */}
                   <FormField
                     control={form.control}
                     name="expiryDate"
@@ -332,7 +344,15 @@ export default function OffersPage() {
                     )}
                   />
                 </div>
-                <Button type="submit" className="w-full">
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={form.formState.isSubmitting}
+                >
+                  {form.formState.isSubmitting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
                   Create Offer
                 </Button>
               </form>
@@ -345,32 +365,56 @@ export default function OffersPage() {
       <div className="grid sm:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{offers.length}</div>
-            <div className="text-sm text-gray-500">Total Offers</div>
+            {offersData === undefined ? (
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{offers.length}</div>
+                <div className="text-sm text-gray-500">Total Offers</div>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-yellow-600">
-              {offers.filter((o) => o.status === "pending").length}
-            </div>
-            <div className="text-sm text-gray-500">Pending</div>
+            {offersData === undefined ? (
+              <Loader2 className="h-6 w-6 animate-spin text-yellow-500" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {offers.filter((o) => o.status === "pending").length}
+                </div>
+                <div className="text-sm text-gray-500">Pending</div>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">
-              {offers.filter((o) => o.status === "accepted").length}
-            </div>
-            <div className="text-sm text-gray-500">Accepted</div>
+            {offersData === undefined ? (
+              <Loader2 className="h-6 w-6 animate-spin text-green-500" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-green-600">
+                  {offers.filter((o) => o.status === "accepted").length}
+                </div>
+                <div className="text-sm text-gray-500">Accepted</div>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-red-600">
-              {offers.filter((o) => o.status === "rejected").length}
-            </div>
-            <div className="text-sm text-gray-500">Rejected</div>
+            {offersData === undefined ? (
+              <Loader2 className="h-6 w-6 animate-spin text-red-500" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-red-600">
+                  {offers.filter((o) => o.status === "rejected").length}
+                </div>
+                <div className="text-sm text-gray-500">Rejected</div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -378,68 +422,81 @@ export default function OffersPage() {
       {/* Offers Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Candidate</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Package</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {offers.length === 0 ? (
+          {offersData === undefined ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    No offers created yet
-                  </TableCell>
+                  <TableHead>Candidate</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Package</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>Expiry</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                offers.map((offer) => (
-                  <TableRow key={offer._id}>
-                    <TableCell>
-                      <div className="font-medium">{offer.candidate.name}</div>
-                      <div className="text-sm text-gray-500">{offer.candidate.email}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {offer.offerType === "intern" ? "Intern" : "Employee"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{offer.role}</TableCell>
-                    <TableCell>
-                      ${offer.package.toLocaleString()}
-                      {offer.offerType === "intern" && "/month"}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(offer.startDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[offer.status]}>
-                        {offer.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" render={<Link href={`/offer/${offer._id}`} />}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Send className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {offers.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={8}
+                      className="text-center py-8 text-gray-500"
+                    >
+                      No offers created yet
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  offers.map((offer) => (
+                    <TableRow key={offer._id}>
+                      <TableCell>
+                        <div className="font-medium">
+                          {offer.candidate?.name ?? "Unknown"}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {offer.candidate?.email ?? ""}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {offer.offerType === "intern" ? "Intern" : "Employee"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{offer.role}</TableCell>
+                      <TableCell>
+                        ${offer.package.toLocaleString()}
+                        {offer.offerType === "intern" && "/month"}
+                      </TableCell>
+                      <TableCell suppressHydrationWarning>
+                        {new Date(offer.startDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell suppressHydrationWarning>
+                        {new Date(offer.expiryDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[offer.status] ?? ""}>
+                          {offer.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Link href={`/candidates/${offer.candidateId}`}>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
