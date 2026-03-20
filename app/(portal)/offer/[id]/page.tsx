@@ -2,25 +2,29 @@
 
 import { useState, use } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, X, Download, Mail, Calendar, DollarSign, Building, Briefcase } from "lucide-react";
+import {
+  Check,
+  X,
+  Download,
+  Mail,
+  Calendar,
+  DollarSign,
+  Building,
+  Briefcase,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
-
-// Mock offer data (would be fetched from Convex)
-const mockOffer = {
-  _id: "o1",
-  candidate: { name: "John Doe", email: "john@example.com" },
-  offerType: "employee",
-  role: "Frontend Developer",
-  department: "Engineering",
-  package: 80000,
-  startDate: Date.now() + 86400000 * 14,
-  expiryDate: Date.now() + 86400000 * 28,
-  status: "pending",
-  createdAt: Date.now() - 86400000,
-};
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -29,20 +33,68 @@ const statusColors: Record<string, string> = {
   expired: "bg-gray-100 text-gray-800",
 };
 
-export default function OfferViewPage({ params }: { params: Promise<{ id: string }> }) {
+export default function OfferViewPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
-  const [offer, setOffer] = useState(mockOffer);
+
+  // ── Convex queries ──
+  const offerData = useQuery(api.functions.offers.getOfferById, {
+    id: id as Id<"offers">,
+  });
+
+  // ── Convex mutations ──
+  const updateOfferStatus = useMutation(api.functions.offers.updateOfferStatus);
+
   const [processing, setProcessing] = useState(false);
 
-  const handleResponse = async (response: "accepted" | "rejected") => {
+  const handleResponse = async (status: "accepted" | "rejected") => {
     setProcessing(true);
-    // In real app, call Convex mutation
-    setTimeout(() => {
-      setOffer({ ...offer, status: response });
+    try {
+      await updateOfferStatus({
+        id: id as Id<"offers">,
+        status,
+      });
+      toast.success(
+        status === "accepted" ? "Offer accepted! Welcome aboard!" : "Offer declined"
+      );
+    } catch (err) {
+      toast.error("Failed to submit response");
+      console.error(err);
+    } finally {
       setProcessing(false);
-      toast.success(response === "accepted" ? "Offer accepted! Welcome aboard!" : "Offer declined");
-    }, 1000);
+    }
   };
+
+  if (offerData === undefined) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (offerData === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center">
+          <CardContent className="pt-6">
+            <h2 className="text-2xl font-bold mb-2">Offer Not Found</h2>
+            <p className="text-gray-600 mb-6">
+              This offer letter is no longer available or the link is invalid.
+            </p>
+            <Button onClick={() => (window.location.href = "/")}>
+              Return to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const { candidate, ...offer } = offerData;
 
   if (offer.status === "accepted") {
     return (
@@ -54,9 +106,12 @@ export default function OfferViewPage({ params }: { params: Promise<{ id: string
             </div>
             <h2 className="text-2xl font-bold mb-2">Offer Accepted!</h2>
             <p className="text-gray-600 mb-6">
-              Congratulations! You have accepted the offer. We look forward to having you join our team.
+              Congratulations! You have accepted the offer. We look forward to
+              having you join our team.
             </p>
-            <Button onClick={() => window.location.href = "/"}>Return to Home</Button>
+            <Button onClick={() => (window.location.href = "/")}>
+              Return to Home
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -73,9 +128,12 @@ export default function OfferViewPage({ params }: { params: Promise<{ id: string
             </div>
             <h2 className="text-2xl font-bold mb-2">Offer Declined</h2>
             <p className="text-gray-600 mb-6">
-              You have declined the offer. We appreciate your time and wish you the best in your career.
+              You have declined the offer. We appreciate your time and wish you
+              the best in your career.
             </p>
-            <Button onClick={() => window.location.href = "/"}>Return to Home</Button>
+            <Button onClick={() => (window.location.href = "/")}>
+              Return to Home
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -107,8 +165,8 @@ export default function OfferViewPage({ params }: { params: Promise<{ id: string
             {/* Candidate Info */}
             <div>
               <h3 className="font-semibold mb-2">Candidate</h3>
-              <div className="text-gray-600">{offer.candidate.name}</div>
-              <div className="text-sm text-gray-500">{offer.candidate.email}</div>
+              <div className="text-gray-600">{candidate?.name}</div>
+              <div className="text-sm text-gray-500">{candidate?.email}</div>
             </div>
 
             <Separator />
@@ -133,14 +191,21 @@ export default function OfferViewPage({ params }: { params: Promise<{ id: string
                 <DollarSign className="h-5 w-5 text-gray-400" />
                 <div>
                   <div className="text-sm text-gray-500">Annual Salary</div>
-                  <div className="font-medium">${offer.package.toLocaleString()}</div>
+                  <div className="font-medium">
+                    ${offer.package.toLocaleString()}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-gray-400" />
                 <div>
                   <div className="text-sm text-gray-500">Start Date</div>
-                  <div className="font-medium">{new Date(offer.startDate).toLocaleDateString()}</div>
+                  <div
+                    className="font-medium"
+                    suppressHydrationWarning
+                  >
+                    {new Date(offer.startDate).toLocaleDateString()}
+                  </div>
                 </div>
               </div>
             </div>
@@ -155,7 +220,12 @@ export default function OfferViewPage({ params }: { params: Promise<{ id: string
               </div>
               <div>
                 <div className="text-sm text-gray-500">Valid Until</div>
-                <div className="font-medium">{new Date(offer.expiryDate).toLocaleDateString()}</div>
+                <div
+                  className="font-medium"
+                  suppressHydrationWarning
+                >
+                  {new Date(offer.expiryDate).toLocaleDateString()}
+                </div>
               </div>
             </div>
 
@@ -166,7 +236,11 @@ export default function OfferViewPage({ params }: { params: Promise<{ id: string
                 onClick={() => handleResponse("accepted")}
                 disabled={processing}
               >
-                <Check className="h-4 w-4 mr-2" />
+                {processing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4 mr-2" />
+                )}
                 Accept Offer
               </Button>
               <Button
@@ -175,17 +249,29 @@ export default function OfferViewPage({ params }: { params: Promise<{ id: string
                 onClick={() => handleResponse("rejected")}
                 disabled={processing}
               >
-                <X className="h-4 w-4 mr-2" />
+                {processing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <X className="h-4 w-4 mr-2" />
+                )}
                 Decline
               </Button>
             </div>
 
-            <div className="text-center">
-              <Button variant="ghost" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Download Offer Letter (PDF)
-              </Button>
-            </div>
+            {offer.documentUrl && (
+              <div className="text-center">
+                <a
+                  href={offer.documentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="ghost" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Offer Letter (PDF)
+                  </Button>
+                </a>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -197,7 +283,8 @@ export default function OfferViewPage({ params }: { params: Promise<{ id: string
               <div>
                 <div className="font-medium text-sm">Questions?</div>
                 <div className="text-sm text-gray-500">
-                  If you have any questions about this offer, please contact HR at hr@ladderacademy.com
+                  If you have any questions about this offer, please contact HR
+                  at hr@ladderacademy.com
                 </div>
               </div>
             </div>

@@ -5,8 +5,19 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Form,
   FormControl,
@@ -15,34 +26,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Upload, FileText, Check, AlertCircle } from "lucide-react";
+import { Upload, FileText, Check, AlertCircle, Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-
-// Mock invitation data - real app would use useQuery(api.invitations.getInvitationByToken, { token })
-const getMockInvite = (token: string) => {
-  let decodedEmail = "candidate@example.com";
-  if (token.startsWith("mock-")) {
-    try {
-      decodedEmail = atob(token.replace("mock-", ""));
-    } catch (e) {
-      decodedEmail = "invalid@example.com";
-    }
-  }
-
-  return {
-    _id: "inv1",
-    token: token,
-    email: decodedEmail,
-    role: "Frontend Developer",
-    department: "Engineering",
-    expiresAt: Date.now() + 86400000 * 7,
-  };
-};
+import type { Id } from "@/convex/_generated/dataModel";
 
 // Document types to upload
 const requiredDocuments = [
@@ -62,21 +53,32 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
+export default function InvitePage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
   const { token } = use(params);
   const router = useRouter();
 
-  // Convex integration
-  const invitation = useQuery(api.functions.invitations.getInvitationByToken, { token });
-  const updateCandidateMutation = useMutation(api.functions.candidates.updateCandidate);
-  const getCandidateByEmail = useQuery(api.functions.candidates.getCandidateByEmail, 
+  // ── Convex queries ──
+  const invitation = useQuery(api.functions.invitations.getInvitationByToken, {
+    token,
+  });
+
+  // Since we don't have the candidate object yet, we'll try to find it by email once invitation is loaded
+  const candidateByEmail = useQuery(
+    api.functions.candidates.getCandidateByEmail,
     invitation ? { email: invitation.email } : "skip"
   );
-  const useInvitationMutation = useMutation(api.functions.invitations.useInvitation);
 
-  const mockInvitation = getMockInvite(token);
-  const activeInvitation = invitation || (token.startsWith("mock-") ? mockInvitation : null);
+  // ── Convex mutations ──
+  const updateCandidate = useMutation(api.functions.candidates.updateCandidate);
+  const useInvitation = useMutation(api.functions.invitations.useInvitation);
+  const generateUploadUrl = useMutation(api.functions.documents.generateUploadUrl);
+  const createDocument = useMutation(api.functions.documents.createDocument);
 
+  // ── Local state ──
   const [step, setStep] = useState<"profile" | "documents">("profile");
   const [documents, setDocuments] = useState<Record<string, File | null>>({});
   const [uploading, setUploading] = useState(false);
@@ -88,6 +90,13 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
       name: "",
       phone: "",
     },
+    // Populate form if candidate already exists in some partial state
+    values: candidateByEmail
+      ? {
+          name: candidateByEmail.name || "",
+          phone: candidateByEmail.phone || "",
+        }
+      : undefined,
   });
 
   const handleFileChange = (type: string, file: File | null) => {
@@ -95,23 +104,28 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
   };
 
   const onProfileSubmit = async (data: ProfileFormValues) => {
+    if (!invitation || !candidateByEmail) {
+      toast.error("Candidate record not found. Please contact HR.");
+      return;
+    }
     try {
-      if (activeInvitation && getCandidateByEmail) {
-        await updateCandidateMutation({
-          id: getCandidateByEmail._id,
-          name: data.name,
-          phone: data.phone,
-        });
-      }
+      await updateCandidate({
+        id: candidateByEmail._id,
+        name: data.name,
+        phone: data.phone,
+      });
       setStep("documents");
       toast.success("Profile saved! Please upload your documents.");
     } catch (error) {
       toast.error("Failed to save profile");
+      console.error(error);
     }
   };
 
   const handleDocumentUpload = async () => {
-    // Check if all required documents are uploaded
+    if (!candidateByEmail || !invitation) return;
+
+    // Check required docs
     const missingDocs = requiredDocuments
       .filter((d) => d.required && !documents[d.type])
       .map((d) => d.label);
@@ -122,13 +136,56 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     }
 
     setUploading(true);
-    // In real app, upload documents to Convex storage
-    setTimeout(() => {
-      setUploading(false);
+    try {
+      // Step 1 — Upload files to Convex Storage
+      const uploadResults = await Promise.all(
+        Object.entries(documents).map(async ([type, file]) => {
+          if (!file) return null;
+
+          const uploadUrl = await generateUploadUrl();
+          const response = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+
+          if (!response.ok) throw new Error(`Upload failed for ${file.name}`);
+          const { storageId } = await response.json();
+
+          // Step 2 — Create document records
+          return await createDocument({
+            candidateId: candidateByEmail._id,
+            type,
+            fileName: file.name,
+            storageId: storageId as Id<"_storage">,
+          });
+        })
+      );
+
+      // Step 3 — Mark invitation as used (this should also update candidate status to "pending")
+      await useInvitation({
+        token: invitation.token,
+        candidateId: candidateByEmail._id,
+      });
+
       setSubmitted(true);
-      toast.success("Documents submitted successfully! Your application is under review.");
-    }, 1500);
+      toast.success("All documents submitted successfully!");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      toast.error(msg);
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
   };
+
+  if (invitation === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -140,7 +197,8 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
             </div>
             <h2 className="text-2xl font-bold mb-2">Application Submitted!</h2>
             <p className="text-gray-600 mb-6">
-              Your profile and documents have been submitted successfully. HR will review your application and get back to you soon.
+              Your profile and documents have been submitted successfully. HR
+              will review your application and get back to you soon.
             </p>
             <Button onClick={() => router.push("/")}>Return to Home</Button>
           </CardContent>
@@ -154,19 +212,23 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Welcome to Ladder Academy</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            Welcome to Ladder Academy
+          </h1>
           <p className="text-gray-600">
             Complete your profile and upload required documents
           </p>
         </div>
 
-        {/* Invitation Details */}
-        {!activeInvitation ? (
+        {/* Invitation Status */}
+        {!invitation ? (
           <Card className="mb-6 border-red-200 bg-red-50">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3 text-sm text-red-800">
                 <AlertCircle className="h-5 w-5" />
-                <span>Invalid or expired invitation link. Please contact HR.</span>
+                <span>
+                  Invalid or expired invitation link. Please contact HR.
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -177,137 +239,160 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                 <AlertCircle className="h-5 w-5 text-blue-500" />
                 <span>
                   You&apos;ve been invited to apply for the position of{" "}
-                  <strong>{activeInvitation.role}</strong> in the{" "}
-                  <strong>{activeInvitation.department}</strong> department.
+                  <strong>{invitation.role || "this position"}</strong> in the{" "}
+                  <strong>{invitation.department || "the department"}</strong> department.
                 </span>
               </div>
             </CardContent>
           </Card>
         )}
 
-        <Tabs value={step} className="w-full">
-          <TabsList className="w-full mb-6">
-            <TabsTrigger value="profile" className="flex-1">
-              1. Personal Details
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="flex-1">
-              2. Documents
-            </TabsTrigger>
-          </TabsList>
+        {invitation && (
+          <Tabs value={step} className="w-full">
+            <TabsList className="w-full mb-6">
+              <TabsTrigger value="profile" className="flex-1">
+                1. Personal Details
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="flex-1">
+                2. Documents
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>Please provide your details</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...profileForm}>
-                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                    <FormField
-                      control={profileForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={profileForm.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="1234567890" 
-                              maxLength={10} 
-                              {...field} 
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/[^0-9]/g, "");
-                                field.onChange(val);
-                              }}
+            <TabsContent value="profile">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Personal Information</CardTitle>
+                  <CardDescription>
+                    Please provide your details
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...profileForm}>
+                    <form
+                      onSubmit={profileForm.handleSubmit(onProfileSubmit)}
+                      className="space-y-4"
+                    >
+                      <FormField
+                        control={profileForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="John Doe" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={profileForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone Number</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="1234567890"
+                                maxLength={10}
+                                {...field}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(
+                                    /[^0-9]/g,
+                                    ""
+                                  );
+                                  field.onChange(val);
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <div className="text-sm text-gray-600">
+                          <strong>Email:</strong> {invitation?.email}
+                        </div>
+                      </div>
+                      <Button type="submit" className="w-full">
+                        Continue to Documents
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="documents">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upload Documents</CardTitle>
+                  <CardDescription>
+                    Please upload the required documents. Maximum file size:
+                    5MB
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {requiredDocuments.map((doc) => (
+                    <div key={doc.type} className="space-y-2">
+                      <Label>
+                        {doc.label}
+                        {doc.required && (
+                          <span className="text-red-500 ml-1">*</span>
+                        )}
+                      </Label>
+                      <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                        {documents[doc.type] ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <FileText className="h-5 w-5 text-green-600" />
+                            <span className="font-medium">
+                              {documents[doc.type]?.name}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleFileChange(doc.type, null)}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer">
+                            <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                            <div className="text-sm text-gray-500">
+                              Click to upload or drag and drop
+                            </div>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) =>
+                                handleFileChange(
+                                  doc.type,
+                                  e.target.files?.[0] || null
+                                )
+                              }
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <div className="text-sm text-gray-600">
-                        <strong>Email:</strong> {activeInvitation?.email}
+                          </label>
+                        )}
                       </div>
                     </div>
-                    <Button type="submit" className="w-full">
-                      Continue to Documents
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="documents">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upload Documents</CardTitle>
-                <CardDescription>
-                  Please upload the required documents. Maximum file size: 5MB
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {requiredDocuments.map((doc) => (
-                  <div key={doc.type} className="space-y-2">
-                    <Label>
-                      {doc.label}
-                      {doc.required && <span className="text-red-500 ml-1">*</span>}
-                    </Label>
-                    <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                      {documents[doc.type] ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <FileText className="h-5 w-5 text-green-600" />
-                          <span className="font-medium">{documents[doc.type]?.name}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleFileChange(doc.type, null)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ) : (
-                        <label className="cursor-pointer">
-                          <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                          <div className="text-sm text-gray-500">
-                            Click to upload or drag and drop
-                          </div>
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={(e) => handleFileChange(doc.type, e.target.files?.[0] || null)}
-                          />
-                        </label>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                <Button
-                  onClick={handleDocumentUpload}
-                  disabled={uploading}
-                  className="w-full"
-                >
-                  {uploading ? "Uploading..." : "Submit Application"}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  ))}
+                  <Button
+                    onClick={handleDocumentUpload}
+                    disabled={uploading}
+                    className="w-full"
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : null}
+                    {uploading ? "Uploading…" : "Submit Application"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </div>
   );
