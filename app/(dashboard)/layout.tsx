@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { useUser } from "@stackframe/stack";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -32,22 +32,18 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session, status } = useSession();
+  const user = useUser();
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (status === "loading") {
+  if (!user) {
+    router.push("/login");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
       </div>
     );
-  }
-
-  if (!session) {
-    router.push("/login");
-    return null;
   }
 
   return (
@@ -102,18 +98,18 @@ export default function DashboardLayout({
         <div className="absolute bottom-0 w-full p-4 border-t">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm">
-              {session.user?.name?.charAt(0).toUpperCase()}
+              {user.displayName?.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{session.user?.name}</p>
-              <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
+              <p className="text-sm font-medium truncate">{user.displayName}</p>
+              <p className="text-xs text-gray-500 truncate">{user.primaryEmail}</p>
             </div>
           </div>
           <Button
             variant="outline"
             className="w-full"
             size="sm"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => user.signOut()}
           >
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out

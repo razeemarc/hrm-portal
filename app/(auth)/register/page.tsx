@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useStackApp, useUser } from "@stackframe/stack";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,15 @@ import { toast } from "sonner";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const app = useStackApp();
+  const user = useUser();
   const [loading, setLoading] = useState(false);
+
+  // If already signed in, redirect to dashboard
+  if (user) {
+    router.push("/dashboard");
+    return null;
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -23,21 +32,18 @@ export default function RegisterPage() {
     const password = formData.get("password") as string;
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+      const result = await app.signUpWithCredential({
+        email,
+        password,
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Registration failed");
+      if (result.status === "error") {
+        toast.error(result.error?.message || "Registration failed");
+      } else {
+        toast.success("Registration successful! Please sign in.");
+        router.push("/handler/sign-in");
       }
-
-      toast.success("Registration successful! Please sign in.");
-      router.push("/login");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Registration failed");
+    } catch {
+      toast.error("Registration failed");
     } finally {
       setLoading(false);
     }

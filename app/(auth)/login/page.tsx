@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useStackApp, useUser } from "@stackframe/stack";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,15 @@ import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
+  const app = useStackApp();
+  const user = useUser();
   const [loading, setLoading] = useState(false);
+
+  // If already signed in, redirect to dashboard
+  if (user) {
+    router.push("/dashboard");
+    return null;
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,18 +30,17 @@ export default function LoginPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    setLoading(false);
-
-    if (result?.error) {
+    try {
+      const result = await app.signInWithCredential({ email, password });
+      if (result.status === "error") {
+        toast.error(result.error?.message || "Invalid email or password");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch {
       toast.error("Invalid email or password");
-    } else {
-      router.push("/dashboard");
+    } finally {
+      setLoading(false);
     }
   }
 
