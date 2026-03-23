@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -261,9 +262,12 @@ export default function CandidateDetailPage({
     <div>
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" render={<Link href="/candidates" />}>
+        <Link
+          href="/candidates"
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+        >
           <ArrowLeft className="h-5 w-5" />
-        </Button>
+        </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{candidate.name}</h1>
           <p className="text-gray-500">{candidate.email}</p>
@@ -640,8 +644,11 @@ export default function CandidateDetailPage({
               ) : offers.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-gray-500 mb-4">No offers created yet</p>
-                  <Link href={`/offers?candidate=${candidate._id}`}>
-                    <Button>Create Offer</Button>
+                  <Link
+                    href={`/offers?candidate=${candidate._id}`}
+                    className={cn(buttonVariants({ variant: "default" }))}
+                  >
+                    Create Offer
                   </Link>
                 </div>
               ) : (
