@@ -1,7 +1,6 @@
 "use client";
 
 import { ReactNode } from "react";
-import { SessionProvider } from "next-auth/react";
 import { StackProvider, StackTheme } from "@stackframe/stack";
 import { ConvexClientProvider } from "./convex-client-provider";
 import { stackClientApp } from "@/lib/stack/client";
@@ -15,7 +14,7 @@ export function Providers({ children }: ProvidersProps) {
     <ConvexClientProvider>
       <StackProvider app={stackClientApp}>
         <StackTheme>
-          <SessionProvider>{children}</SessionProvider>
+          {children}
         </StackTheme>
       </StackProvider>
     </ConvexClientProvider>

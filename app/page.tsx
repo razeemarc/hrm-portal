@@ -1,9 +1,16 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { stackServerApp } from "@/lib/stack/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FileCheck, ScrollText, Building2 } from "lucide-react";
 
-export default function Home() {
+export default async function Home() {
+  const user = await stackServerApp.getUser();
+  if (user) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -11,10 +18,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <h1 className="text-xl font-bold">HRM Portal</h1>
           <div className="flex gap-4">
-            <Link href="/login">
+            <Link href="/handler/login">
               <Button variant="outline">Sign In</Button>
             </Link>
-            <Link href="/register">
+            <Link href="/handler/signup">
               <Button>Register</Button>
             </Link>
           </div>
@@ -88,7 +95,7 @@ export default function Home() {
           <p className="text-gray-600 mb-4">
             Ready to streamline your HR processes?
           </p>
-          <Link href="/register">
+          <Link href="/handler/signup">
             <Button size="lg">Get Started</Button>
           </Link>
         </div>
