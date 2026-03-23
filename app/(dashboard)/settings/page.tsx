@@ -15,11 +15,14 @@ import Image from "next/image";
 
 export default function SettingsPage() {
   const user = useUser();
+  const dbUser = useQuery(api.functions.auth.getCurrentUser);
+  const updateProfile = useMutation(api.functions.auth.updateUserProfile);
   const settings = useQuery(api.functions.settings.getSettings);
   const updateSettings = useMutation(api.functions.settings.updateSettings);
   const generateUploadUrl = useMutation(api.functions.settings.generateUploadUrl);
   const getStorageUrl = useAction(api.functions.settings.getStorageUrl);
   
+  const [userName, setUserName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [companyAddress, setCompanyAddress] = useState("");
   const [hrEmail, setHrEmail] = useState("");
@@ -28,6 +31,13 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load profile when it arrives
+  useEffect(() => {
+    if (dbUser) {
+      setUserName(dbUser.name || "");
+    }
+  }, [dbUser]);
 
   // Load settings when they arrive from Convex
   useEffect(() => {
@@ -38,6 +48,23 @@ export default function SettingsPage() {
       setLogoUrl(settings.logoUrl || null);
     }
   }, [settings]);
+
+  const handleProfileSave = async () => {
+    if (!dbUser) return;
+    setSaving(true);
+    try {
+      await updateProfile({
+        id: dbUser._id,
+        name: userName,
+      });
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.error("Profile save error:", error);
+      toast.error("Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -112,12 +139,20 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" defaultValue={user?.displayName || ""} />
+              <Input 
+                id="name" 
+                value={userName} 
+                onChange={(e) => setUserName(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" defaultValue={user?.primaryEmail || ""} disabled />
+              <Input id="email" value={dbUser?.email || ""} disabled />
             </div>
+            <Button onClick={handleProfileSave} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Save Profile
+            </Button>
           </CardContent>
         </Card>
 

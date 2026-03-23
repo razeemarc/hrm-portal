@@ -69,3 +69,17 @@ export const getUsers = query({
     return await ctx.db.query("users").collect();
   },
 });
+
+// Update current user profile
+export const updateUserProfile = mutation({
+  args: {
+    id: v.id("users"),
+    name: v.string(),
+    avatarUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...updates } = args;
+    await ctx.db.patch(id, updates);
+    return id;
+  },
+});
