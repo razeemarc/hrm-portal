@@ -46,7 +46,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Plus, Eye, Loader2 } from "lucide-react";
+import { CalendarIcon, Plus, Eye, Loader2, Mail, ExternalLink, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -147,8 +147,8 @@ export default function OffersPage() {
                     <FormItem>
                       <FormLabel>Candidate</FormLabel>
                       <Select
-                        onValueChange={(v) => v && field.onChange(v)}
-                        defaultValue={field.value}
+                        onValueChange={field.onChange}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -156,16 +156,18 @@ export default function OffersPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {candidates.length === 0 ? (
+                          {candidates.filter(c => c.status !== "invited").length === 0 ? (
                             <SelectItem value="__none" disabled>
-                              No candidates found
+                              No applied candidates found
                             </SelectItem>
                           ) : (
-                            candidates.map((c) => (
-                              <SelectItem key={c._id} value={c._id}>
-                                {c.name} ({c.email})
-                              </SelectItem>
-                            ))
+                            candidates
+                              .filter(c => c.status !== "invited")
+                              .map((c) => (
+                                <SelectItem key={c._id} value={c._id}>
+                                  {c.name} ({c.email}) - {c.status.replace("_", " ")}
+                                </SelectItem>
+                              ))
                           )}
                         </SelectContent>
                       </Select>
@@ -182,8 +184,8 @@ export default function OffersPage() {
                     <FormItem>
                       <FormLabel>Offer Type</FormLabel>
                       <Select
-                        onValueChange={(v) => v && field.onChange(v)}
-                        defaultValue={field.value}
+                        onValueChange={field.onChange}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -454,12 +456,27 @@ export default function OffersPage() {
                   offers.map((offer) => (
                     <TableRow key={offer._id}>
                       <TableCell>
-                        <div className="font-medium">
-                          {offer.candidate?.name ?? "Unknown"}
+                        <div className="font-medium hover:underline">
+                          <Link href={`/candidates/${offer.candidateId}`}>
+                            {offer.candidate?.name ?? "Unknown"}
+                          </Link>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {offer.candidate?.email ?? ""}
+                        <div className="text-sm text-gray-500 flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          <a
+                            href={`mailto:${offer.candidate?.email}`}
+                            className="hover:text-blue-600 hover:underline"
+                            title="Send email"
+                          >
+                            {offer.candidate?.email ?? ""}
+                          </a>
                         </div>
+                        {offer.candidate?.phone && (
+                          <div className="text-xs text-gray-400 flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {offer.candidate.phone}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
@@ -485,10 +502,31 @@ export default function OffersPage() {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Link href={`/candidates/${offer.candidateId}`}>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" title="View Candidate">
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
+                          <a
+                            href={`/offer/${offer._id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button variant="outline" size="sm" title="View Offer Portal">
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </a>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            title="Email Offer Link"
+                            onClick={() => {
+                              const subject = encodeURIComponent("Offer Letter from Ladder Academy");
+                              const body = encodeURIComponent(`Hello ${offer.candidate?.name},\n\nWe are pleased to extend an offer to you. You can view and respond to your offer letter at the following link:\n\n${window.location.origin}/offer/${offer._id}\n\nBest regards,\nHR Team`);
+                              window.location.href = `mailto:${offer.candidate?.email}?subject=${subject}&body=${body}`;
+                            }}
+                          >
+                            <Mail className="h-4 w-4 text-blue-600" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
