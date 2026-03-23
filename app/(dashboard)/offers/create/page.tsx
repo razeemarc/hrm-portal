@@ -7,7 +7,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -31,7 +30,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Loader2, ArrowLeft, Upload, X } from "lucide-react";
+import { CalendarIcon, Loader2, ArrowLeft, Upload, X, Edit3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -50,17 +49,14 @@ const offerSchema = z.object({
   packageType: z.enum(["lpa", "monthly", "stipend"]),
   startDate: z.date({ message: "Start date is required" }),
   expiryDate: z.date({ message: "Expiry date is required" }),
-  // Company details
   companyName: z.string().min(1, "Company name is required"),
   companyAddress: z.string().min(1, "Company address is required"),
   hrName: z.string().min(1, "HR name is required"),
-  // Custom text content
   introductionText: z.string().optional(),
   benefitsText: z.string().optional(),
   acceptanceText: z.string().optional(),
   closingText: z.string().optional(),
   footerText: z.string().optional(),
-  // Signatures
   hrSignature: z.string().optional(),
   companyLogo: z.string().optional(),
 });
@@ -69,16 +65,12 @@ type OfferFormValues = z.infer<typeof offerSchema>;
 
 export default function CreateOfferPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"form" | "preview">("form");
+  const [editingField, setEditingField] = useState<string | null>(null);
   const hrSignatureInputRef = useRef<HTMLInputElement>(null);
   const companyLogoInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Convex queries ──
   const candidatesData = useQuery(api.functions.candidates.getCandidates);
-
-  // ── Convex mutations ──
   const createOffer = useMutation(api.functions.offers.createOffer);
-
   const candidates = candidatesData ?? [];
 
   const form = useForm<OfferFormValues>({
@@ -103,7 +95,6 @@ export default function CreateOfferPage() {
     },
   });
 
-  // Handle file upload for signatures
   const handleFileUpload = async (file: File, fieldName: "hrSignature" | "companyLogo") => {
     return new Promise<string>((resolve) => {
       const reader = new FileReader();
@@ -116,13 +107,11 @@ export default function CreateOfferPage() {
     });
   };
 
-  // Get selected candidate for preview
   const selectedCandidateId = form.watch("candidateId");
   const selectedCandidate = useMemo(() => {
     return candidates.find((c) => c._id === selectedCandidateId);
   }, [candidates, selectedCandidateId]);
 
-  // Preview data - computed from form values
   const previewData = useMemo(() => {
     const offerType = form.watch("offerType");
     const role = form.watch("role");
@@ -187,6 +176,46 @@ export default function CreateOfferPage() {
   const hrSignature = form.watch("hrSignature");
   const companyLogo = form.watch("companyLogo");
 
+  // Render inline edit field
+  const renderEditField = (fieldName: keyof OfferFormValues, label: string, placeholder: string, isTextarea = false) => {
+    const isEditing = editingField === fieldName;
+
+    return (
+      <div className="relative">
+        {isEditing ? (
+          <div className="flex items-center gap-2">
+            {isTextarea ? (
+              <Textarea
+                {...form.register(fieldName)}
+                placeholder={placeholder}
+                className="text-sm"
+                autoFocus
+                onBlur={() => setEditingField(null)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && setEditingField(null)}
+              />
+            ) : (
+              <Input
+                {...form.register(fieldName)}
+                placeholder={placeholder}
+                className="text-sm h-8"
+                autoFocus
+                onBlur={() => setEditingField(null)}
+                onKeyDown={(e) => e.key === "Enter" && setEditingField(null)}
+              />
+            )}
+          </div>
+        ) : (
+          <div
+            className="text-sm cursor-pointer hover:bg-accent rounded px-2 py-1 -mx-2 min-h-[28px] flex items-center"
+            onClick={() => setEditingField(fieldName)}
+          >
+            {form.watch(fieldName as any) || <span className="text-muted-foreground">{placeholder}</span>}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center gap-4 mb-6">
@@ -196,536 +225,15 @@ export default function CreateOfferPage() {
           </Button>
         </Link>
         <h1 className="text-2xl font-bold">Create Offer Letter</h1>
+        <span className="text-sm text-muted-foreground ml-auto">Click on any text in the preview to edit</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-6 h-[calc(100vh-200px)]">
-        {/* Form Section */}
-        <div className="bg-card rounded-lg border p-6 overflow-y-auto">
-          <div className="mb-4">
-            <p className="text-sm text-muted-foreground">
-              Fill in the details below to generate an offer letter. Preview updates in real-time.
-            </p>
-          </div>
-
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-6"
-            >
-              {/* Section: Candidate & Offer Type */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Candidate Details</h3>
-
-                {/* Candidate select */}
-                <FormField
-                  control={form.control}
-                  name="candidateId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Candidate</FormLabel>
-                      <Select
-                        onValueChange={(v) => v && field.onChange(v)}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select candidate" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {candidates.length === 0 ? (
-                            <SelectItem value="__none" disabled>
-                              No candidates found
-                            </SelectItem>
-                          ) : (
-                            candidates.map((c) => (
-                              <SelectItem key={c._id} value={c._id}>
-                                {c.name} ({c.email})
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Offer type */}
-                <FormField
-                  control={form.control}
-                  name="offerType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Offer Type</FormLabel>
-                      <Select
-                        onValueChange={(v) => v && field.onChange(v)}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="employee">
-                            Full-time Employee
-                          </SelectItem>
-                          <SelectItem value="intern">Intern</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Role</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Frontend Developer" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="department"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Department</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Engineering" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Package in Rupees with Type */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="package"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {form.watch("offerType") === "intern"
-                            ? "Stipend Amount (₹)"
-                            : "Salary Amount (₹)"}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder={
-                              form.watch("offerType") === "intern"
-                                ? "20000"
-                                : "800000"
-                            }
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(Number(e.target.value))
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="packageType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Package Type</FormLabel>
-                        <Select
-                          onValueChange={(v) => v && field.onChange(v)}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="lpa">
-                              LPA (Lakhs Per Annum)
-                            </SelectItem>
-                            <SelectItem value="monthly">
-                              Monthly (₹/month)
-                            </SelectItem>
-                            <SelectItem value="stipend">
-                              Stipend (₹/month)
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Section: Dates */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dates</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Start Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger
-                            render={
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              />
-                            }
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="expiryDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Expiry Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger
-                            render={
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              />
-                            }
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Section: Company Details */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Company Details</h3>
-                <FormField
-                  control={form.control}
-                  name="companyName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ladder Academy" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="companyAddress"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Address" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="hrName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>HR Manager Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="HR Manager" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Section: Signatures & Logo */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Signatures & Logo</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="hrSignature"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>HR Signature (Image)</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              ref={hrSignatureInputRef}
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  handleFileUpload(file, "hrSignature");
-                                }
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => hrSignatureInputRef.current?.click()}
-                              className="w-full"
-                            >
-                              <Upload className="h-4 w-4 mr-2" />
-                              Upload
-                            </Button>
-                            {hrSignature && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => form.setValue("hrSignature", "")}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </FormControl>
-                        {hrSignature && (
-                          <div className="mt-2 border rounded p-2">
-                            <img src={hrSignature} alt="HR Signature" className="h-16 object-contain" />
-                          </div>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="companyLogo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Company Logo</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              ref={companyLogoInputRef}
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  handleFileUpload(file, "companyLogo");
-                                }
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => companyLogoInputRef.current?.click()}
-                              className="w-full"
-                            >
-                              <Upload className="h-4 w-4 mr-2" />
-                              Upload
-                            </Button>
-                            {companyLogo && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => form.setValue("companyLogo", "")}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </FormControl>
-                        {companyLogo && (
-                          <div className="mt-2 border rounded p-2">
-                            <img src={companyLogo} alt="Company Logo" className="h-16 object-contain" />
-                          </div>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Section: Custom Text Content */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Customize Letter Content</h3>
-                <FormField
-                  control={form.control}
-                  name="introductionText"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Introduction Text</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Custom introduction text (leave empty for default)"
-                          {...field}
-                          rows={3}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="benefitsText"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Benefits Text</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Custom benefits description (leave empty for default)"
-                          {...field}
-                          rows={3}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="acceptanceText"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Acceptance/Terms Text</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Custom acceptance terms (leave empty for default)"
-                          {...field}
-                          rows={3}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="closingText"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Closing Text</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Custom closing message (leave empty for default)"
-                          {...field}
-                          rows={2}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="footerText"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Footer Text</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Custom footer text (leave empty for default)"
-                          {...field}
-                          rows={2}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  disabled={form.formState.isSubmitting}
-                >
-                  {form.formState.isSubmitting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : null}
-                  Create Offer
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setActiveTab(activeTab === "form" ? "preview" : "form")}
-                >
-                  {activeTab === "form" ? "Show Preview" : "Show Form"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </div>
-
-        {/* Preview Section */}
-        <div className="bg-gray-100 rounded-lg border overflow-hidden">
-          <div className="bg-muted px-4 py-2 border-b">
+      <div className="grid grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+        {/* PDF Preview Section - Takes 2 columns */}
+        <div className="col-span-2 bg-gray-100 rounded-lg border overflow-hidden">
+          <div className="bg-muted px-4 py-2 border-b flex justify-between items-center">
             <span className="text-sm font-medium">Live Preview</span>
+            <Edit3 className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="h-[calc(100%-40px)]">
             <PDFViewer width="100%" height="100%" showToolbar>
@@ -736,6 +244,317 @@ export default function CreateOfferPage() {
               )}
             </PDFViewer>
           </div>
+        </div>
+
+        {/* Edit Panel - Takes 1 column */}
+        <div className="bg-card rounded-lg border p-4 overflow-y-auto">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Candidate */}
+              <FormField
+                control={form.control}
+                name="candidateId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Candidate</FormLabel>
+                    <Select onValueChange={(v) => v && field.onChange(v)} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="Select candidate" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {candidates.map((c) => (
+                          <SelectItem key={c._id} value={c._id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              {/* Offer Type */}
+              <FormField
+                control={form.control}
+                name="offerType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Offer Type</FormLabel>
+                    <Select onValueChange={(v) => v && field.onChange(v)} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="employee">Full-time Employee</SelectItem>
+                        <SelectItem value="intern">Intern</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              {/* Role & Department */}
+              <div className="grid grid-cols-2 gap-2">
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Role</FormLabel>
+                      <FormControl>
+                        <Input className="h-8" placeholder="Role" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="department"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Department</FormLabel>
+                      <FormControl>
+                        <Input className="h-8" placeholder="Department" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Package */}
+              <div className="grid grid-cols-2 gap-2">
+                <FormField
+                  control={form.control}
+                  name="package"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Amount (₹)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          className="h-8"
+                          placeholder="Amount"
+                          {...field}
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="packageType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Type</FormLabel>
+                      <Select onValueChange={(v) => v && field.onChange(v)} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="lpa">LPA</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="stipend">Stipend</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-2">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-xs">Start Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("h-8 text-xs justify-start", !field.value && "text-muted-foreground")}>
+                            <CalendarIcon className="h-3 w-3 mr-1" />
+                            {field.value ? format(field.value, "MMM d, yyyy") : "Pick"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                        </PopoverContent>
+                      </Popover>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="expiryDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-xs">Expiry Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("h-8 text-xs justify-start", !field.value && "text-muted-foreground")}>
+                            <CalendarIcon className="h-3 w-3 mr-1" />
+                            {field.value ? format(field.value, "MMM d, yyyy") : "Pick"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                        </PopoverContent>
+                      </Popover>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Company Details */}
+              <div className="border-t pt-3 mt-3">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Company Details</p>
+                <FormField
+                  control={form.control}
+                  name="companyName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Company Name</FormLabel>
+                      <FormControl>
+                        <Input className="h-8" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="companyAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Address</FormLabel>
+                      <FormControl>
+                        <Input className="h-8" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="hrName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">HR Name</FormLabel>
+                      <FormControl>
+                        <Input className="h-8" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Signatures */}
+              <div className="border-t pt-3 mt-3">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Signatures & Logo</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <FormField
+                    control={form.control}
+                    name="hrSignature"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel className="text-xs">HR Signature</FormLabel>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          ref={hrSignatureInputRef}
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, "hrSignature");
+                          }}
+                        />
+                        <Button type="button" variant="outline" size="sm" className="h-8 w-full" onClick={() => hrSignatureInputRef.current?.click()}>
+                          <Upload className="h-3 w-3 mr-1" /> Upload
+                        </Button>
+                        {hrSignature && (
+                          <div className="mt-1">
+                            <img src={hrSignature} alt="Signature" className="h-10 object-contain" />
+                          </div>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="companyLogo"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Logo</FormLabel>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          ref={companyLogoInputRef}
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, "companyLogo");
+                          }}
+                        />
+                        <Button type="button" variant="outline" size="sm" className="h-8 w-full" onClick={() => companyLogoInputRef.current?.click()}>
+                          <Upload className="h-3 w-3 mr-1" /> Upload
+                        </Button>
+                        {companyLogo && (
+                          <div className="mt-1">
+                            <img src={companyLogo} alt="Logo" className="h-10 object-contain" />
+                          </div>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Custom Text */}
+              <div className="border-t pt-3 mt-3">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Custom Text</p>
+                <FormField
+                  control={form.control}
+                  name="introductionText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Introduction</FormLabel>
+                      <Textarea className="text-xs" placeholder="Custom intro..." {...field} rows={2} />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="benefitsText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Benefits</FormLabel>
+                      <Textarea className="text-xs" placeholder="Custom benefits..." {...field} rows={2} />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="closingText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Closing</FormLabel>
+                      <Textarea className="text-xs" placeholder="Custom closing..." {...field} rows={2} />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Create Offer
+              </Button>
+            </form>
+          </Form>
         </div>
       </div>
     </div>
