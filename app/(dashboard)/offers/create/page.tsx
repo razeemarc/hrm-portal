@@ -377,12 +377,14 @@ export default function CreateOfferPage() {
                     <FormItem className="flex flex-col">
                       <FormLabel className="text-xs">Start Date</FormLabel>
                       <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("h-8 text-xs justify-start", !field.value && "text-muted-foreground")}>
-                            <CalendarIcon className="h-3 w-3 mr-1" />
-                            {field.value ? format(field.value, "MMM d, yyyy") : "Pick"}
-                          </Button>
-                        </PopoverTrigger>
+                        <PopoverTrigger 
+                          render={
+                            <Button variant="outline" className={cn("h-8 text-xs justify-start", !field.value && "text-muted-foreground")}>
+                              <CalendarIcon className="h-3 w-3 mr-1" />
+                              {field.value ? format(field.value, "MMM d, yyyy") : "Pick"}
+                            </Button>
+                          } 
+                        />
                         <PopoverContent className="w-auto p-0">
                           <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
                         </PopoverContent>
@@ -397,12 +399,14 @@ export default function CreateOfferPage() {
                     <FormItem className="flex flex-col">
                       <FormLabel className="text-xs">Expiry Date</FormLabel>
                       <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("h-8 text-xs justify-start", !field.value && "text-muted-foreground")}>
-                            <CalendarIcon className="h-3 w-3 mr-1" />
-                            {field.value ? format(field.value, "MMM d, yyyy") : "Pick"}
-                          </Button>
-                        </PopoverTrigger>
+                        <PopoverTrigger 
+                          render={
+                            <Button variant="outline" className={cn("h-8 text-xs justify-start", !field.value && "text-muted-foreground")}>
+                              <CalendarIcon className="h-3 w-3 mr-1" />
+                              {field.value ? format(field.value, "MMM d, yyyy") : "Pick"}
+                            </Button>
+                          } 
+                        />
                         <PopoverContent className="w-auto p-0">
                           <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
                         </PopoverContent>

@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Eye, Loader2 } from "lucide-react";
+import { Plus, Eye, Loader2, Mail, Phone, ExternalLink } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -24,11 +24,12 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OffersPage() {
-
   // ── Convex queries ──
   const offersData = useQuery(api.functions.offers.getOffers);
+  const settings = useQuery(api.functions.settings.getSettings);
 
   const offers = offersData ?? [];
+  const companyName = settings?.companyName || "Ladder Academy";
 
   return (
     <div>
@@ -203,8 +204,8 @@ export default function OffersPage() {
                             size="sm"
                             title="Email Offer Link"
                             onClick={() => {
-                              const subject = encodeURIComponent("Offer Letter from Ladder Academy");
-                              const body = encodeURIComponent(`Hello ${offer.candidate?.name},\n\nWe are pleased to extend an offer to you. You can view and respond to your offer letter at the following link:\n\n${window.location.origin}/offer/${offer._id}\n\nBest regards,\nHR Team`);
+                              const subject = encodeURIComponent(`Offer Letter from ${companyName}`);
+                              const body = encodeURIComponent(`Hello ${offer.candidate?.name},\n\nWe are pleased to extend an offer from ${companyName} to you. You can view and respond to your offer letter at the following link:\n\n${window.location.origin}/offer/${offer._id}\n\nBest regards,\nHR Team`);
                               window.location.href = `mailto:${offer.candidate?.email}?subject=${subject}&body=${body}`;
                             }}
                           >
