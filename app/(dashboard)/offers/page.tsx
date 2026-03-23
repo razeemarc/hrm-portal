@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,55 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Plus, Eye, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { toast } from "sonner";
-import { format } from "date-fns";
-
-const offerSchema = z.object({
-  candidateId: z.string().min(1, "Please select a candidate"),
-  offerType: z.enum(["intern", "employee"]),
-  role: z.string().min(1, "Role is required"),
-  department: z.string().min(1, "Department is required"),
-  package: z.number().min(0, "Package must be positive"),
-  startDate: z.date({ message: "Start date is required" }),
-  expiryDate: z.date({ message: "Expiry date is required" }),
-});
-
-type OfferFormValues = z.infer<typeof offerSchema>;
+import { Plus, Eye, Loader2 } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -74,291 +24,22 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OffersPage() {
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   // ── Convex queries ──
   const offersData = useQuery(api.functions.offers.getOffers);
-  const candidatesData = useQuery(api.functions.candidates.getCandidates);
-
-  // ── Convex mutations ──
-  const createOffer = useMutation(api.functions.offers.createOffer);
 
   const offers = offersData ?? [];
-  const candidates = candidatesData ?? [];
-
-  const form = useForm<OfferFormValues>({
-    resolver: zodResolver(offerSchema),
-    defaultValues: {
-      candidateId: "",
-      offerType: "employee",
-      role: "",
-      department: "",
-      package: 0,
-    },
-  });
-
-  const onSubmit = async (data: OfferFormValues) => {
-    try {
-      await createOffer({
-        candidateId: data.candidateId as Id<"candidates">,
-        offerType: data.offerType,
-        role: data.role,
-        department: data.department,
-        package: data.package,
-        startDate: data.startDate.getTime(),
-        expiryDate: data.expiryDate.getTime(),
-      });
-      setIsCreateOpen(false);
-      form.reset();
-      toast.success("Offer created successfully");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      toast.error("Failed to create offer", { description: msg });
-      console.error(err);
-    }
-  };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Offer Letters</h1>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger render={<Button />}>
+        <Link href="/offers/create">
+          <Button>
             <Plus className="h-4 w-4 mr-2" />
             Create Offer
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Create Offer Letter</DialogTitle>
-              <DialogDescription>
-                Generate an offer letter for a candidate
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                {/* Candidate select */}
-                <FormField
-                  control={form.control}
-                  name="candidateId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Candidate</FormLabel>
-                      <Select
-                        onValueChange={(v) => v && field.onChange(v)}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select candidate" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {candidates.length === 0 ? (
-                            <SelectItem value="__none" disabled>
-                              No candidates found
-                            </SelectItem>
-                          ) : (
-                            candidates.map((c) => (
-                              <SelectItem key={c._id} value={c._id}>
-                                {c.name} ({c.email})
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Offer type */}
-                <FormField
-                  control={form.control}
-                  name="offerType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Offer Type</FormLabel>
-                      <Select
-                        onValueChange={(v) => v && field.onChange(v)}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="employee">
-                            Full-time Employee
-                          </SelectItem>
-                          <SelectItem value="intern">Intern</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Role</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Frontend Developer" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="department"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Department</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Engineering" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Package */}
-                <FormField
-                  control={form.control}
-                  name="package"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {form.watch("offerType") === "intern"
-                          ? "Stipend ($/month)"
-                          : "Annual Salary ($)"}
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder={
-                            form.watch("offerType") === "intern"
-                              ? "2000"
-                              : "80000"
-                          }
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Start Date */}
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Start Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger
-                            render={
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              />
-                            }
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Expiry Date */}
-                  <FormField
-                    control={form.control}
-                    name="expiryDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Expiry Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger
-                            render={
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              />
-                            }
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={form.formState.isSubmitting}
-                >
-                  {form.formState.isSubmitting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : null}
-                  Create Offer
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+          </Button>
+        </Link>
       </div>
 
       {/* Stats */}
@@ -468,8 +149,12 @@ export default function OffersPage() {
                       </TableCell>
                       <TableCell>{offer.role}</TableCell>
                       <TableCell>
-                        ${offer.package.toLocaleString()}
-                        {offer.offerType === "intern" && "/month"}
+                        {offer.packageType === "lpa"
+                          ? `₹${(offer.package / 100000).toFixed(1)} LPA`
+                          : offer.packageType === "monthly"
+                          ? `₹${offer.package.toLocaleString()}/month`
+                          : `₹${offer.package.toLocaleString()}/month`
+                        }
                       </TableCell>
                       <TableCell suppressHydrationWarning>
                         {new Date(offer.startDate).toLocaleDateString()}
