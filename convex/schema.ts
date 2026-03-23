@@ -93,4 +93,13 @@ export default defineSchema({
     .index("by_token", ["token"])
     .index("by_email", ["email"])
     .index("by_candidate", ["candidateId"]),
+
+  // Company Settings table
+  company_settings: defineTable({
+    companyName: v.string(),
+    companyAddress: v.string(),
+    hrEmail: v.string(),
+    logoUrl: v.optional(v.string()),
+    updatedAt: v.number(),
+  }),
 });

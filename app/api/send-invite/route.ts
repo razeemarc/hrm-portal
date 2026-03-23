@@ -22,8 +22,10 @@ export async function POST(req: NextRequest) {
 
     const resend = new Resend(resendApiKey);
 
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "HRM Portal <onboarding@resend.dev>";
+
     const { data, error } = await resend.emails.send({
-      from: "HRM Portal <onboarding@resend.dev>",
+      from: fromEmail,
       to: [email],
       subject: "You've Been Invited to HRM Portal",
       html: `
@@ -109,6 +111,17 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error("Resend error:", error);
+      // Specific handling for domain verification errors
+      if (error.message.includes("verify a domain") || error.message.includes("onboarding@resend.dev")) {
+        return NextResponse.json(
+          { 
+            error: "Domain verification required", 
+            message: error.message,
+            inviteLink: inviteLink 
+          },
+          { status: 403 }
+        );
+      }
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
