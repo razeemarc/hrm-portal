@@ -14,6 +14,7 @@ import type * as functions_documents from "../functions/documents.js";
 import type * as functions_invitations from "../functions/invitations.js";
 import type * as functions_invite_action from "../functions/invite_action.js";
 import type * as functions_offers from "../functions/offers.js";
+import type * as functions_settings from "../functions/settings.js";
 
 import type {
   ApiFromModules,
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   "functions/invitations": typeof functions_invitations;
   "functions/invite_action": typeof functions_invite_action;
   "functions/offers": typeof functions_offers;
+  "functions/settings": typeof functions_settings;
 }>;
 
 /**
