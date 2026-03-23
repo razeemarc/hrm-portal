@@ -70,6 +70,7 @@ export default defineSchema({
     role: v.string(),
     department: v.string(),
     package: v.number(),
+    packageType: v.string(), // "lpa" (Lakhs per Annum), "monthly" (per month), "stipend" (intern stipend)
     startDate: v.number(),
     expiryDate: v.number(),
     status: v.string(), // "pending", "accepted", "rejected", "expired"

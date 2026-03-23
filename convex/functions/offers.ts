@@ -71,6 +71,7 @@ export const createOffer = mutation({
     role: v.string(),
     department: v.string(),
     package: v.number(),
+    packageType: v.string(), // "lpa", "monthly", "stipend"
     startDate: v.number(),
     expiryDate: v.number(),
     documentUrl: v.optional(v.string()),
