@@ -24,7 +24,7 @@ export default defineSchema({
     email: v.string(),
     name: v.string(),
     role: v.optional(v.string()), // "admin", "hr"
-    passwordHash: v.string(),
+    passwordHash: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_email", ["email"]),

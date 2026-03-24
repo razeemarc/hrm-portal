@@ -16,7 +16,7 @@ import Image from "next/image";
 export default function SettingsPage() {
   const user = useUser();
   const dbUser = useQuery(api.functions.auth.getCurrentUser);
-  const updateProfile = useMutation(api.functions.auth.updateUserProfile);
+  const syncUser = useMutation(api.functions.auth.syncUser);
   const settings = useQuery(api.functions.settings.getSettings);
   const updateSettings = useMutation(api.functions.settings.updateSettings);
   const generateUploadUrl = useMutation(api.functions.settings.generateUploadUrl);
@@ -36,8 +36,10 @@ export default function SettingsPage() {
   useEffect(() => {
     if (dbUser) {
       setUserName(dbUser.name || "");
+    } else if (user?.displayName) {
+      setUserName(user.displayName);
     }
-  }, [dbUser]);
+  }, [dbUser, user?.displayName]);
 
   // Load settings when they arrive from Convex
   useEffect(() => {
@@ -50,14 +52,25 @@ export default function SettingsPage() {
   }, [settings]);
 
   const handleProfileSave = async () => {
-    if (!dbUser) return;
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
     setSaving(true);
     try {
-      await updateProfile({
-        id: dbUser._id,
+      // 1. Update Stack Auth
+      if (user.update) {
+        await user.update({ displayName: userName });
+      }
+
+      // 2. Update/Sync Convex
+      await syncUser({
         name: userName,
+        email: user.primaryEmail || "",
       });
-      toast.success("Profile updated successfully");
+
+      toast.success("Profile updated in both systems");
     } catch (error) {
       console.error("Profile save error:", error);
       toast.error("Failed to update profile");
@@ -134,24 +147,55 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Profile Settings</CardTitle>
-            <CardDescription>Update your account information</CardDescription>
+            <CardDescription>Update your account information (Linked to Stack Auth)</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input 
-                id="name" 
-                value={userName} 
-                onChange={(e) => setUserName(e.target.value)}
-              />
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <div className="space-y-1">
+                  <Input 
+                    id="name" 
+                    value={userName} 
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder={user?.displayName || "Enter your full name"}
+                  />
+                  <div className="flex justify-between items-center px-1">
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Currently stored in Stack: <span className="font-medium text-foreground">{user?.displayName || "—"}</span>
+                    </p>
+                    {userName !== user?.displayName && userName && (
+                      <span className="text-[9px] bg-yellow-100 text-yellow-700 px-1.5 rounded-full font-medium">Pending Sync</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <div className="space-y-1">
+                  <Input 
+                    id="email" 
+                    value={user?.primaryEmail || dbUser?.email || ""} 
+                    disabled 
+                    className="bg-muted/50 cursor-not-allowed border-dashed"
+                  />
+                  <p className="text-[10px] text-muted-foreground px-1">
+                    Primary email provided by Stack Auth. To change this, visit your account settings.
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" value={dbUser?.email || ""} disabled />
-            </div>
-            <Button onClick={handleProfileSave} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Save Profile
+
+            <Button onClick={handleProfileSave} disabled={saving} className="w-full sm:w-auto">
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Profile & Sync"
+              )}
             </Button>
           </CardContent>
         </Card>

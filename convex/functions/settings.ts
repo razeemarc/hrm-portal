@@ -10,6 +10,7 @@ export const getSettings = query({
       companyName: "Ladder Academy",
       companyAddress: "123 Tech Street, San Francisco, CA",
       hrEmail: "hr@ladderacademy.com",
+      logoUrl: undefined,
     };
   },
 });
