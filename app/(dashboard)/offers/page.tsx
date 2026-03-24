@@ -168,8 +168,8 @@ export default function OffersPage() {
                         {offer.packageType === "lpa"
                           ? `₹${(offer.package / 100000).toFixed(1)} LPA`
                           : offer.packageType === "monthly"
-                          ? `₹${offer.package.toLocaleString()}/month`
-                          : `₹${offer.package.toLocaleString()}/month`
+                            ? `₹${offer.package.toLocaleString()}/month`
+                            : `₹${offer.package.toLocaleString()}/month`
                         }
                       </TableCell>
                       <TableCell suppressHydrationWarning>
