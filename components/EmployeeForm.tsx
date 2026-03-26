@@ -23,8 +23,12 @@ import { Button } from "@/components/ui/button";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
-import { Loader2, User, Mail, Briefcase, Building2, Calendar, DollarSign, ChevronRight, Plus } from "lucide-react";
+import { Loader2, User, Mail, Briefcase, Building2, Calendar as CalendarIcon, DollarSign, ChevronRight, Plus, X, Save } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const employeeSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -56,11 +60,11 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
       department: "",
       offerType: "employee",
       package: 0,
-      hiredAt: new Date().toISOString().split("T")[0],
+      hiredAt: new Date().toISOString(),
     },
   });
 
-  const { isSubmitting } = form.formState;
+  const { isSubmitting, isDirty } = form.formState;
 
   async function onSubmit(values: EmployeeFormValues) {
     try {
@@ -236,28 +240,54 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hired Date</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input type="date" className="pl-10 h-11 bg-muted/30" {...field} />
-                  </div>
-                </FormControl>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal h-11 bg-muted/30",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(new Date(field.value), "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value ? new Date(field.value) : undefined}
+                      onSelect={(date) => field.onChange(date?.toISOString())}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
-        <div className="flex flex-col gap-3 pt-6">
-          <Button type="submit" disabled={isSubmitting} className="h-12 text-base font-semibold transition-all hover:scale-[1.01] active:scale-[0.99]">
+        <div className="flex flex-col gap-3 pt-6 sticky bottom-0 bg-background pb-4">
+          <Button type="submit" disabled={isSubmitting || !isDirty} className="h-12 text-base font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] shadow-md">
             {isSubmitting ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
-              <Plus className="mr-2 h-5 w-5" />
+              <Save className="mr-2 h-5 w-5" />
             )}
-            Create Employee
+            Save Changes
           </Button>
-          <Button type="button" variant="ghost" onClick={onCancel} className="h-11 text-muted-foreground hover:text-foreground">
+          <Button type="button" variant="ghost" onClick={onCancel} className="h-11 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+            <X className="mr-2 h-4 w-4" />
             Cancel
           </Button>
         </div>

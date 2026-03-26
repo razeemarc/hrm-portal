@@ -30,18 +30,20 @@ export default function EmployeesPage() {
 
       {/* Create Employee Drawer */}
       <Sheet open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen}>
-        <SheetContent side="right" className="sm:max-w-sm border-l shadow-2xl">
-          <SheetHeader className="mb-6">
-            <SheetTitle className="text-2xl font-bold tracking-tight">Add New Employee</SheetTitle>
-            <SheetDescription className="text-sm">
-              Enter the employee details below to add them to the system.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-2">
-            <EmployeeForm 
-              onSuccess={() => setIsCreateDrawerOpen(false)}
-              onCancel={() => setIsCreateDrawerOpen(false)}
-            />
+        <SheetContent side="right" className="w-full sm:max-w-lg border-l shadow-2xl p-0 flex flex-col">
+          <div className="flex-1 overflow-y-auto px-6 py-8">
+            <SheetHeader className="mb-6">
+              <SheetTitle className="text-2xl font-bold tracking-tight">Add New Employee</SheetTitle>
+              <SheetDescription className="text-sm">
+                Enter the employee details below to add them to the system.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-2">
+              <EmployeeForm 
+                onSuccess={() => setIsCreateDrawerOpen(false)}
+                onCancel={() => setIsCreateDrawerOpen(false)}
+              />
+            </div>
           </div>
         </SheetContent>
       </Sheet>
