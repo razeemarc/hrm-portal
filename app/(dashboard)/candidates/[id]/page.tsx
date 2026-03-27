@@ -421,8 +421,8 @@ export default function CandidateDetailPage({
                         <FormItem>
                           <FormLabel>Status</FormLabel>
                           <Select
-                            onValueChange={(v) => v && field.onChange(v)}
-                            defaultValue={field.value}
+                            onValueChange={field.onChange}
+                            value={field.value ?? ""}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -451,8 +451,8 @@ export default function CandidateDetailPage({
                         <FormItem>
                           <FormLabel>Offer Type</FormLabel>
                           <Select
-                            onValueChange={(v) => v && field.onChange(v)}
-                            defaultValue={field.value || ""}
+                            onValueChange={field.onChange}
+                            value={field.value ?? ""}
                           >
                             <FormControl>
                               <SelectTrigger>
