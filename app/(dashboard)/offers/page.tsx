@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Eye, Loader2, Mail, Phone, ExternalLink } from "lucide-react";
+import { Plus, Eye, Loader2, Mail, Phone, ExternalLink, FileText } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -190,6 +190,17 @@ export default function OffersPage() {
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
+                          {offer.documentUrl && (
+                            <a
+                              href={offer.documentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Button variant="outline" size="sm" title="View PDF">
+                                <FileText className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </a>
+                          )}
                           <a
                             href={`/offer/${offer._id}`}
                             target="_blank"
