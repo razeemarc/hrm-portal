@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  Receipt,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Documents", href: "/documents", icon: FileCheck },
   { name: "Offers", href: "/offers", icon: ScrollText },
   { name: "Employees", href: "/employees", icon: Building2 },
+  { name: "Payslips", href: "/payslips", icon: Receipt },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

@@ -94,4 +94,31 @@ export default defineSchema({
     .index("by_token", ["token"])
     .index("by_email", ["email"])
     .index("by_candidate", ["candidateId"]),
+
+  // Payslips table
+  payslips: defineTable({
+    employeeId: v.id("candidates"), // Links to hired candidate
+    month: v.string(), // Format: "2024-01" (YYYY-MM)
+    year: v.number(), // For easier filtering
+    baseSalary: v.number(),
+    houseRentAllowance: v.optional(v.number()),
+    conveyanceAllowance: v.optional(v.number()),
+    specialAllowance: v.optional(v.number()),
+    otherAllowances: v.optional(v.number()),
+    providentFund: v.optional(v.number()),
+    professionalTax: v.optional(v.number()),
+    incomeTax: v.optional(v.number()),
+    otherDeductions: v.optional(v.number()),
+    grossEarnings: v.number(), // Calculated
+    totalDeductions: v.number(), // Calculated
+    netSalary: v.number(), // Calculated
+    status: v.string(), // "draft", "generated", "paid"
+    paymentDate: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_employee", ["employeeId"])
+    .index("by_month", ["month"])
+    .index("by_status", ["status"]),
 });
