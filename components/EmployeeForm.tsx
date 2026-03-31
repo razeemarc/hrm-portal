@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
-import { Loader2, User, Mail, Briefcase, Building2, Calendar as CalendarIcon, DollarSign, ChevronRight, Plus, X, Save } from "lucide-react";
+import { Loader2, User, Mail, Briefcase, Building2, Calendar as CalendarIcon, DollarSign, ChevronRight, Plus, X, Save, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 const employeeSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.string().min(1, "Role is required"),
   department: z.string().min(1, "Department is required"),
   offerType: z.string().min(1, "Type is required"),
@@ -56,6 +57,7 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
     defaultValues: {
       name: "",
       email: "",
+      password: "",
       role: "",
       department: "",
       offerType: "employee",
@@ -68,7 +70,26 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
 
   async function onSubmit(values: EmployeeFormValues) {
     try {
-      // 1. Create candidate with status "hired"
+      // 1. Create user in Stack Auth
+      const stackAuthRes = await fetch("/api/create-employee-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: values.email,
+          password: values.password,
+          name: values.name,
+          role: "employee",
+        }),
+      });
+
+      if (!stackAuthRes.ok) {
+        const errorData = await stackAuthRes.json();
+        throw new Error(errorData.error || "Failed to create user in Stack Auth");
+      }
+
+      const { userId } = await stackAuthRes.json();
+
+      // 2. Create candidate with status "hired" in Convex
       const candidateId = await createCandidate({
         name: values.name,
         email: values.email,
@@ -78,18 +99,18 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
         status: "hired",
       });
 
-      // 2. Update with package and hiredAt
+      // 3. Update with package and hiredAt
       await updateCandidate({
         id: candidateId,
         package: values.package,
         hiredAt: new Date(values.hiredAt).getTime(),
       });
 
-      toast.success("Employee created successfully");
+      toast.success("Employee created and Stack account setup successfully");
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to create employee");
+      toast.error(error.message || "Failed to create employee");
     }
   }
 
@@ -131,6 +152,23 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="john@example.com" className="pl-10 h-11 bg-muted/30" {...field} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem className="space-y-1">
+                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Password</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input type="password" placeholder="••••••••" className="pl-10 h-11 bg-muted/30" {...field} />
                   </div>
                 </FormControl>
                 <FormMessage />
