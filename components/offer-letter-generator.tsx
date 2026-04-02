@@ -48,6 +48,7 @@ export async function downloadOfferLetter(data: OfferData) {
   const blob = await generateOfferLetterPDF(data);
   const url = URL.createObjectURL(blob);
 
+  const link = document.createElement("a");
   link.href = url;
   link.download = `${data.candidateName}-offer-letter.pdf`;
   document.body.appendChild(link);
