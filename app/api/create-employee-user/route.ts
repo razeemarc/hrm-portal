@@ -19,18 +19,18 @@ export async function POST(req: NextRequest) {
       displayName: name,
     });
 
-    // Set role to 'employee' in metadata or custom field as requested
-    // Note: Stack Auth roles are usually managed via metadata if not using built-in roles
+    // Ensure role is 'employee' in metadata
+    // Stack Auth also has a 'role' property on user objects if configured
     await user.update({
       metadata: {
-        role: role || "employee",
+        role: "employee",
       },
     });
 
     return NextResponse.json({ 
       success: true, 
       userId: user.id,
-      message: "User created in Stack Auth successfully" 
+      message: "User created in Stack Auth successfully as an employee" 
     });
 
   } catch (error: any) {

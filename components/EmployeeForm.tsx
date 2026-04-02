@@ -31,14 +31,26 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const employeeSchema = z.object({
+  // Personal Info
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.string().min(1, "Role is required"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  address: z.string().min(5, "Address is required"),
+  dob: z.string().min(1, "Date of birth is required"),
+  
+  // Professional Details
+  role: z.string().min(1, "Job title is required"),
   department: z.string().min(1, "Department is required"),
-  offerType: z.string().min(1, "Type is required"),
-  package: z.preprocess((val) => Number(val), z.number().min(0, "Package must be positive")),
-  hiredAt: z.string().min(1, "Hired date is required"),
+  manager: z.string().min(1, "Manager name is required"),
+  hiredAt: z.string().min(1, "Start date is required"),
+  employeeId: z.string().min(1, "Employee ID is required"),
+  
+  // Contract & Compensation
+  offerType: z.string().min(1, "Contract type is required"),
+  package: z.preprocess((val) => Number(val), z.number().min(0, "Salary must be positive")),
+  benefits: z.string().min(1, "Benefits description is required"),
+  workSchedule: z.string().min(1, "Work schedule is required"),
 });
 
 type EmployeeFormValues = z.infer<typeof employeeSchema>;
@@ -51,6 +63,7 @@ interface EmployeeFormProps {
 export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
   const createCandidate = useMutation(api.functions.candidates.createCandidate);
   const updateCandidate = useMutation(api.functions.candidates.updateCandidate);
+  const createEmployeeUser = useMutation(api.functions.auth.createEmployeeUser);
 
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -58,11 +71,18 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
       name: "",
       email: "",
       password: "",
+      phone: "",
+      address: "",
+      dob: new Date(new Date().setFullYear(new Date().getFullYear() - 25)).toISOString(),
       role: "",
       department: "",
+      manager: "",
+      hiredAt: new Date().toISOString(),
+      employeeId: "",
       offerType: "employee",
       package: 0,
-      hiredAt: new Date().toISOString(),
+      benefits: "Health Insurance, Paid Time Off, 401(k) Matching",
+      workSchedule: "Monday - Friday, 9:00 AM - 5:00 PM",
     },
   });
 
@@ -89,24 +109,49 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
 
       const { userId } = await stackAuthRes.json();
 
-      // 2. Create candidate with status "hired" in Convex
+      // 2. Store details in Convex User table
+      await createEmployeeUser({
+        email: values.email,
+        name: values.name,
+        phone: values.phone,
+        address: values.address,
+        dob: new Date(values.dob).getTime(),
+        jobTitle: values.role,
+        department: values.department,
+        manager: values.manager,
+        startDate: new Date(values.hiredAt).getTime(),
+        employeeId: values.employeeId,
+        salary: values.package,
+        contractType: values.offerType,
+        benefits: values.benefits,
+        workSchedule: values.workSchedule,
+      });
+
+      // 3. Create candidate with status "hired" in Convex (for portal tracking)
       const candidateId = await createCandidate({
         name: values.name,
         email: values.email,
+        phone: values.phone,
         role: values.role,
         department: values.department,
         offerType: values.offerType,
         status: "hired",
+        address: values.address,
+        dob: new Date(values.dob).getTime(),
+        manager: values.manager,
+        employeeId: values.employeeId,
+        benefits: values.benefits,
+        workSchedule: values.workSchedule,
       });
 
-      // 3. Update with package and hiredAt
+      // 4. Update with package and hiredAt
       await updateCandidate({
         id: candidateId,
         package: values.package,
         hiredAt: new Date(values.hiredAt).getTime(),
       });
 
-      toast.success("Employee created and Stack account setup successfully");
+      toast.success("Employee created and profile synced successfully");
       onSuccess();
     } catch (error: any) {
       console.error(error);
@@ -175,6 +220,77 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
               </FormItem>
             )}
           />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Phone Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+1 (555) 000-0000" className="h-11 bg-muted/30" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="dob"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Date of Birth</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal h-11 bg-muted/30",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(new Date(field.value), "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={(date) => field.onChange(date?.toISOString())}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem className="space-y-1">
+                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Home Address</FormLabel>
+                <FormControl>
+                  <Input placeholder="123 Main St, City, Country" className="h-11 bg-muted/30" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         {/* Professional Info */}
@@ -185,13 +301,13 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
           </div>
           <Separator className="opacity-50" />
           
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="role"
               render={({ field }) => (
                 <FormItem className="space-y-1">
-                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Role</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Job Title</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -220,6 +336,35 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
               )}
             />
           </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="manager"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Reporting Manager</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Manager Name" className="h-11 bg-muted/30" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="employeeId"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Employee ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="EMP-001" className="h-11 bg-muted/30 font-mono" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         {/* Contract Info */}
@@ -230,7 +375,7 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
           </div>
           <Separator className="opacity-50" />
           
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="offerType"
@@ -259,7 +404,7 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
               name="package"
               render={({ field }) => (
                 <FormItem className="space-y-1">
-                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Annual Package</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Annual Salary (LPA)</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -271,13 +416,41 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="benefits"
+            render={({ field }) => (
+              <FormItem className="space-y-1">
+                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Benefits Package</FormLabel>
+                <FormControl>
+                  <Input placeholder="Health, Dental, Vision, etc." className="h-11 bg-muted/30" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="workSchedule"
+            render={({ field }) => (
+              <FormItem className="space-y-1">
+                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Work Schedule</FormLabel>
+                <FormControl>
+                  <Input placeholder="Mon-Fri, 9am-5pm" className="h-11 bg-muted/30" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           
           <FormField
             control={form.control}
             name="hiredAt"
             render={({ field }) => (
               <FormItem className="space-y-1">
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hired Date</FormLabel>
+                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Joining Date</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
