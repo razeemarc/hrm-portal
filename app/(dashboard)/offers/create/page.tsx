@@ -326,7 +326,7 @@ export default function CreateOfferPage() {
             <div className="font-semibold text-blue-900">
               {isIntern ? "Monthly Stipend" : "Annual CTC"}
             </div>
-            <div className="font-bold text-blue-900">
+            <div className="font-bold text-blue-900 tabular-nums lining-nums">
               {data.packageType === "lpa"
                 ? `₹${(data.package / 100000).toFixed(1)} LPA`
                 : `₹${data.package.toLocaleString("en-IN")}/month`

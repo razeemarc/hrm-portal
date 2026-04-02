@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { IndianRupee } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -44,6 +45,7 @@ export default function OfferViewPage({
   const offerData = useQuery(api.functions.offers.getOfferById, {
     id: id as Id<"offers">,
   });
+  const settings = useQuery(api.functions.settings.getSettings);
 
   // ── Convex mutations ──
   const updateOfferStatus = useMutation(api.functions.offers.updateOfferStatus);
@@ -95,6 +97,7 @@ export default function OfferViewPage({
   }
 
   const { candidate, ...offer } = offerData;
+  const companyName = settings?.companyName || "Ladder Academy";
 
   if (offer.status === "accepted") {
     return (
@@ -147,7 +150,7 @@ export default function OfferViewPage({
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Offer Letter</h1>
           <p className="text-gray-600">
-            Ladder Academy is pleased to extend an offer to you
+            {companyName} is pleased to extend an offer to you
           </p>
         </div>
 
@@ -188,11 +191,20 @@ export default function OfferViewPage({
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <DollarSign className="h-5 w-5 text-gray-400" />
+                {offer.packageType === "lpa" || offer.packageType === "stipend" || offer.packageType === "monthly" ? (
+                  <IndianRupee className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <DollarSign className="h-5 w-5 text-gray-400" />
+                )}
                 <div>
-                  <div className="text-sm text-gray-500">Annual Salary</div>
-                  <div className="font-medium">
-                    ${offer.package.toLocaleString()}
+                  <div className="text-sm text-gray-500">
+                    {offer.offerType === "intern" ? "Monthly Stipend" : "Annual CTC"}
+                  </div>
+                  <div className="font-medium tabular-nums lining-nums">
+                    {offer.packageType === "lpa"
+                      ? `₹${(offer.package / 100000).toFixed(1)} LPA`
+                      : `₹${offer.package.toLocaleString("en-IN")}${offer.packageType === "monthly" ? "/month" : ""}`
+                    }
                   </div>
                 </div>
               </div>

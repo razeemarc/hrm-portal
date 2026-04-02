@@ -75,6 +75,7 @@ export const createOffer = mutation({
     startDate: v.number(),
     expiryDate: v.number(),
     storageId: v.optional(v.string()), // storageId from upload
+    documentUrl: v.optional(v.string()), // optional for backwards compatibility
   },
   handler: async (ctx, args) => {
     const { storageId, ...rest } = args;
