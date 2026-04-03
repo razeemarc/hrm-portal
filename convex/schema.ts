@@ -23,10 +23,23 @@ export default defineSchema({
   users: defineTable({
     email: v.string(),
     name: v.string(),
-    role: v.optional(v.string()), // "admin", "hr"
+    role: v.optional(v.string()), // "admin", "hr", "employee"
     passwordHash: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     createdAt: v.number(),
+    // Employee details for non-admin users
+    phone: v.optional(v.string()),
+    address: v.optional(v.string()),
+    dob: v.optional(v.number()),
+    jobTitle: v.optional(v.string()),
+    department: v.optional(v.string()),
+    manager: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    employeeId: v.optional(v.string()),
+    salary: v.optional(v.number()),
+    contractType: v.optional(v.string()),
+    benefits: v.optional(v.string()),
+    workSchedule: v.optional(v.string()),
   }).index("by_email", ["email"]),
 
   // Candidates table
@@ -44,6 +57,13 @@ export default defineSchema({
     hiredAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
+    // Expanded employee fields
+    address: v.optional(v.string()),
+    dob: v.optional(v.number()),
+    manager: v.optional(v.string()),
+    employeeId: v.optional(v.string()),
+    benefits: v.optional(v.string()),
+    workSchedule: v.optional(v.string()),
   })
     .index("by_email", ["email"])
     .index("by_status", ["status"])

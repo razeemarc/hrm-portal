@@ -84,6 +84,48 @@ export const updateUserProfile = mutation({
   },
 });
 
+// Create employee user (after stack auth account creation)
+export const createEmployeeUser = mutation({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    phone: v.optional(v.string()),
+    address: v.optional(v.string()),
+    dob: v.optional(v.number()),
+    jobTitle: v.optional(v.string()),
+    department: v.optional(v.string()),
+    manager: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    employeeId: v.optional(v.string()),
+    salary: v.optional(v.number()),
+    contractType: v.optional(v.string()),
+    benefits: v.optional(v.string()),
+    workSchedule: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        ...args,
+        role: "employee",
+      });
+      return existing._id;
+    }
+
+    const userId = await ctx.db.insert("users", {
+      ...args,
+      role: "employee",
+      createdAt: Date.now(),
+    });
+
+    return userId;
+  },
+});
+
 // Sync user from Stack Auth identity
 export const syncUser = mutation({
   args: {

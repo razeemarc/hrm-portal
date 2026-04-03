@@ -19,12 +19,12 @@ import {
 import { useState } from "react";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Candidates", href: "/candidates", icon: Users },
-  { name: "Documents", href: "/documents", icon: FileCheck },
-  { name: "Offers", href: "/offers", icon: ScrollText },
-  { name: "Employees", href: "/employees", icon: Building2 },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Candidates", href: "/admin/candidates", icon: Users },
+  { name: "Documents", href: "/admin/documents", icon: FileCheck },
+  { name: "Offers", href: "/admin/offers", icon: ScrollText },
+  { name: "Employees", href: "/admin/employees", icon: Building2 },
+  { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export default function DashboardLayout({
@@ -60,7 +60,7 @@ export default function DashboardLayout({
         )}
       >
         <div className="flex items-center justify-between h-16 px-4 border-b">
-          <Link href="/dashboard" className="text-xl font-bold">
+          <Link href="/admin/dashboard" className="text-xl font-bold">
             HRM Portal
           </Link>
           <button

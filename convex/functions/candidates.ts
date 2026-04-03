@@ -86,6 +86,13 @@ export const createCandidate = mutation({
     department: v.optional(v.string()),
     status: v.string(),
     offerType: v.optional(v.string()),
+    // Expanded employee fields
+    address: v.optional(v.string()),
+    dob: v.optional(v.number()),
+    manager: v.optional(v.string()),
+    employeeId: v.optional(v.string()),
+    benefits: v.optional(v.string()),
+    workSchedule: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -111,6 +118,13 @@ export const updateCandidate = mutation({
     status: v.optional(v.string()),
     offerType: v.optional(v.string()),
     hiredAt: v.optional(v.number()),
+    // Expanded employee fields
+    address: v.optional(v.string()),
+    dob: v.optional(v.number()),
+    manager: v.optional(v.string()),
+    employeeId: v.optional(v.string()),
+    benefits: v.optional(v.string()),
+    workSchedule: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
