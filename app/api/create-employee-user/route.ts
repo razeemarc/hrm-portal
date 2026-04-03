@@ -19,10 +19,13 @@ export async function POST(req: NextRequest) {
       displayName: name,
     });
 
-    // Ensure role is 'employee' in metadata
-    // Stack Auth also has a 'role' property on user objects if configured
+    // Ensure role is 'employee' in all metadata types for redundancy and access
+    // Stack Auth UI separates Client, Client Read-Only, and Server metadata
     await user.update({
-      metadata: {
+      clientReadOnlyMetadata: {
+        role: "employee",
+      },
+      serverMetadata: {
         role: "employee",
       },
     });

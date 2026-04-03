@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useState } from "react";
 import {
   Form,
   FormControl,
@@ -23,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
-import { Loader2, User, Mail, Briefcase, Building2, Calendar as CalendarIcon, DollarSign, ChevronRight, Plus, X, Save, Lock } from "lucide-react";
+import { Loader2, User, Mail, Briefcase, Building2, Calendar as CalendarIcon, DollarSign, ChevronRight, Plus, X, Save, Lock, Eye, EyeOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -61,6 +62,7 @@ interface EmployeeFormProps {
 }
 
 export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
+  const [showPassword, setShowPassword] = useState(false);
   const createCandidate = useMutation(api.functions.candidates.createCandidate);
   const updateCandidate = useMutation(api.functions.candidates.updateCandidate);
   const createEmployeeUser = useMutation(api.functions.auth.createEmployeeUser);
@@ -213,7 +215,23 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
                 <FormControl>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input type="password" placeholder="••••••••" className="pl-10 h-11 bg-muted/30" {...field} />
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="••••••••" 
+                      className="pl-10 pr-10 h-11 bg-muted/30" 
+                      {...field} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </FormControl>
                 <FormMessage />

@@ -42,6 +42,14 @@ export default function DashboardLayout({
     return null;
   }
 
+  // Security check: If employee tries to access /admin, redirect them back to their dashboard
+  // @ts-ignore
+  const role = user.metadata?.role || user.clientReadOnlyMetadata?.role;
+  if (role === "employee") {
+    router.replace("/dashboard");
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Mobile sidebar overlay */}
