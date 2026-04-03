@@ -8,7 +8,7 @@ import { Users, FileCheck, ScrollText, Building2 } from "lucide-react";
 export default async function Home() {
   const user = await stackServerApp.getUser();
   if (user) {
-    redirect("/dashboard");
+    redirect("/admin/dashboard");
   }
 
   return (
