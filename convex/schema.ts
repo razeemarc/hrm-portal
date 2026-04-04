@@ -83,6 +83,21 @@ export default defineSchema({
     .index("by_candidate", ["candidateId"])
     .index("by_status", ["status"]),
 
+  // Attendance table
+  attendance: defineTable({
+    userId: v.id("users"),
+    date: v.string(), // "YYYY-MM-DD"
+    checkIn: v.number(), // timestamp
+    checkOut: v.optional(v.number()), // timestamp
+    status: v.string(), // "present", "on_leave", "absent"
+    workingHours: v.optional(v.number()), // in hours
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_date", ["date"])
+    .index("by_user_and_date", ["userId", "date"]),
+
   // Offers table
   offers: defineTable({
     candidateId: v.id("candidates"),

@@ -14,23 +14,29 @@ export default function AuthCallback() {
 
   useEffect(() => {
     if (user) {
+      console.log("AuthCallback: User detected", user.id);
       try {
         // @ts-ignore
         const role = user.metadata?.role || user.clientReadOnlyMetadata?.role || user.serverMetadata?.role;
+        console.log("AuthCallback: Role detected", role);
         
         if (role === "employee") {
-          router.replace("/dashboard");
+          console.log("AuthCallback: Redirecting to /dashboard");
+          window.location.href = "/dashboard";
         } else if (role === "admin" || role === "hr") {
-          router.replace("/admin/dashboard");
+          console.log("AuthCallback: Redirecting to /admin/dashboard");
+          window.location.href = "/admin/dashboard";
         } else {
           // If no role is assigned yet, default to dashboard or show error
           console.warn("User has no role assigned in metadata:", user.id);
-          router.replace("/dashboard"); 
+          window.location.href = "/dashboard"; 
         }
       } catch (err) {
         console.error("Redirection error:", err);
         setError("An error occurred during redirection. Please try logging in again.");
       }
+    } else {
+      console.log("AuthCallback: No user detected yet");
     }
   }, [user, router]);
 

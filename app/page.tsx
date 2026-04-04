@@ -10,6 +10,7 @@ export default async function Home() {
   if (user) {
     // @ts-ignore
     const role = user.metadata?.role || user.serverMetadata?.role;
+    console.log("Home: Logged in user detected with role:", role);
     if (role === "employee") {
       redirect("/dashboard");
     } else {
