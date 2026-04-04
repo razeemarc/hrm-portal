@@ -3,7 +3,7 @@ import { stackServerApp } from "@/lib/stack/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, name, role } = await req.json();
+    const { email, password, name } = await req.json();
 
     if (!email || !password || !name) {
       return NextResponse.json(
@@ -12,16 +12,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create user in Stack Auth
-    const user = await stackServerApp.createUser({
-      primaryEmail: email,
-      password: password,
-      displayName: name,
-    });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const normalizedName = String(name).trim();
+    const normalizedPassword = String(password);
 
-    // Ensure role is 'employee' in all metadata types for redundancy and access
-    // Stack Auth UI separates Client, Client Read-Only, and Server metadata
+    let user;
+
+    try {
+      user = await stackServerApp.createUser({
+        primaryEmail: normalizedEmail,
+        primaryEmailAuthEnabled: true,
+        primaryEmailVerified: true,
+        password: normalizedPassword,
+        displayName: normalizedName,
+        clientReadOnlyMetadata: {
+          role: "employee",
+        },
+        serverMetadata: {
+          role: "employee",
+        },
+      });
+    } catch (error) {
+      const existingUsers = await stackServerApp.listUsers({
+        query: normalizedEmail,
+        includeRestricted: true,
+      });
+
+      user =
+        existingUsers.find(
+          (candidate) => candidate.primaryEmail?.toLowerCase() === normalizedEmail
+        ) ?? null;
+
+      if (!user) {
+        throw error;
+      }
+    }
+
     await user.update({
+      primaryEmail: normalizedEmail,
+      primaryEmailAuthEnabled: true,
+      primaryEmailVerified: true,
+      password: normalizedPassword,
+      displayName: normalizedName,
       clientReadOnlyMetadata: {
         role: "employee",
       },
@@ -33,13 +65,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       userId: user.id,
-      message: "User created in Stack Auth successfully as an employee" 
+      message: "User created in Stack Auth successfully as an employee"
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Stack Auth user creation error:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to create user in Stack Auth";
+
     return NextResponse.json(
-      { error: error.message || "Failed to create user in Stack Auth" },
+      { error: message },
       { status: 500 }
     );
   }
