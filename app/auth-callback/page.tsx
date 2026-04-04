@@ -1,23 +1,20 @@
 "use client";
 
 import { useUser } from "@stackframe/stack";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function AuthCallback() {
   const user = useUser();
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       console.log("AuthCallback: User detected", user.id);
       try {
-        // @ts-ignore
-        const role = user.metadata?.role || user.clientReadOnlyMetadata?.role || user.serverMetadata?.role;
+        const role =
+          user.clientMetadata?.role ||
+          user.clientReadOnlyMetadata?.role ||
+          ("serverMetadata" in user ? user.serverMetadata?.role : undefined);
         console.log("AuthCallback: Role detected", role);
         
         if (role === "employee") {
@@ -33,31 +30,12 @@ export default function AuthCallback() {
         }
       } catch (err) {
         console.error("Redirection error:", err);
-        setError("An error occurred during redirection. Please try logging in again.");
+        window.location.href = "/";
       }
     } else {
       console.log("AuthCallback: No user detected yet");
     }
-  }, [user, router]);
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Authentication Error</AlertTitle>
-          <AlertDescription className="mt-2">
-            {error}
-            <div className="mt-4">
-              <Button variant="outline" size="sm" onClick={() => window.location.href = "/"}>
-                Return to Home
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  }, [user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
