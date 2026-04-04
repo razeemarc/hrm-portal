@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useUser, useStackApp } from "@stackframe/stack";
+import { useUser } from "@stackframe/stack";
 import { useState, useEffect } from "react";
 import { 
   Card, 
@@ -41,7 +41,9 @@ import Link from "next/link";
 export default function AttendancePage() {
   const user = useUser({ or: 'redirect' });
   const convexUser = useQuery(api.functions.auth.getCurrentUser);
+  const syncUser = useMutation(api.functions.auth.syncUser);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isRepairingProfile, setIsRepairingProfile] = useState(false);
   
   const today = format(new Date(), "yyyy-MM-dd");
   
@@ -66,6 +68,36 @@ export default function AttendancePage() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (!user?.primaryEmail || convexUser !== null || isRepairingProfile) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const repairProfile = async () => {
+      try {
+        setIsRepairingProfile(true);
+        await syncUser({
+          name: user.displayName || "Employee",
+          email: user.primaryEmail || "",
+        });
+      } catch (error) {
+        console.error("AttendancePage: Failed to sync employee profile", error);
+      } finally {
+        if (!cancelled) {
+          setIsRepairingProfile(false);
+        }
+      }
+    };
+
+    void repairProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [convexUser, isRepairingProfile, syncUser, user?.displayName, user?.primaryEmail]);
+
   if (!user || convexUser === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -84,7 +116,9 @@ export default function AttendancePage() {
           <div className="space-y-2">
             <h2 className="text-2xl font-bold tracking-tight">Access Restricted</h2>
             <p className="text-muted-foreground">
-              We couldn't find your employee record. Please contact HR to set up your profile.
+              {isRepairingProfile
+                ? "We're syncing your employee profile. Please wait a moment and try again."
+                : "We couldn't find your employee record. Please contact HR to set up your profile."}
             </p>
           </div>
           <Link href="/">

@@ -14,7 +14,7 @@ import {
   X,
   Clock
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function EmployeeLayout({
   children,
@@ -27,7 +27,22 @@ export default function EmployeeLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const role =
+    user?.clientMetadata?.role ||
+    user?.clientReadOnlyMetadata?.role ||
+    (user && "serverMetadata" in user ? user.serverMetadata?.role : undefined);
+
+  useEffect(() => {
+    if (role && role !== "employee") {
+      router.replace("/admin/dashboard");
+    }
+  }, [role, router]);
+
   if (!user) {
+    return null;
+  }
+
+  if (role && role !== "employee") {
     return null;
   }
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useUser } from "@stackframe/stack";
-import { useRouter } from "next/navigation";
 import {
   Briefcase,
   User,
@@ -19,20 +18,8 @@ import { Button } from "@/components/ui/button";
 
 export default function EmployeeDashboard() {
   const user = useUser({ or: 'redirect' });
-  const router = useRouter();
 
   if (!user) {
-    return null;
-  }
-
-  // Check if role is employee
-  // @ts-ignore
-  const role = user.metadata?.role || user.clientReadOnlyMetadata?.role;
-  console.log("EmployeeDashboard: User role", role);
-  
-  if (role !== "employee" && role !== undefined && role !== null) {
-    console.log("EmployeeDashboard: Not an employee, redirecting to /admin/dashboard");
-    router.replace("/admin/dashboard");
     return null;
   }
 

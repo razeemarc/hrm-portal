@@ -1,16 +1,36 @@
 import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function getRoleFromIdentity(identity: { role?: string | null; client_metadata?: { role?: string | null } | null; clientMetadata?: { role?: string | null } | null; client_read_only_metadata?: { role?: string | null } | null; clientReadOnlyMetadata?: { role?: string | null } | null; server_metadata?: { role?: string | null } | null; serverMetadata?: { role?: string | null } | null; }) {
+  return (
+    identity.role ||
+    identity.clientMetadata?.role ||
+    identity.client_metadata?.role ||
+    identity.clientReadOnlyMetadata?.role ||
+    identity.client_read_only_metadata?.role ||
+    identity.serverMetadata?.role ||
+    identity.server_metadata?.role ||
+    undefined
+  );
+}
+
 // Get current authenticated user
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
+    if (!identity.email) return null;
+
+    const normalizedEmail = normalizeEmail(identity.email);
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", identity.email!))
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .first();
     return user;
   },
@@ -32,9 +52,11 @@ export const createUser = mutation({
     passwordHash: v.string(),
   },
   handler: async (ctx, args) => {
+    const normalizedEmail = normalizeEmail(args.email);
+
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .first();
 
     if (existing) {
@@ -42,7 +64,7 @@ export const createUser = mutation({
     }
 
     const userId = await ctx.db.insert("users", {
-      email: args.email,
+      email: normalizedEmail,
       name: args.name,
       passwordHash: args.passwordHash,
       role: "admin",
@@ -53,7 +75,7 @@ export const createUser = mutation({
     await ctx.db.insert("accounts", {
       userId,
       provider: "password",
-      providerAccountId: args.email,
+      providerAccountId: normalizedEmail,
       passwordHash: args.passwordHash,
       createdAt: Date.now(),
     });
@@ -103,14 +125,17 @@ export const createEmployeeUser = mutation({
     workSchedule: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const normalizedEmail = normalizeEmail(args.email);
+
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .first();
 
     if (existing) {
       await ctx.db.patch(existing._id, {
         ...args,
+        email: normalizedEmail,
         role: "employee",
       });
       return existing._id;
@@ -118,6 +143,7 @@ export const createEmployeeUser = mutation({
 
     const userId = await ctx.db.insert("users", {
       ...args,
+      email: normalizedEmail,
       role: "employee",
       createdAt: Date.now(),
     });
@@ -135,22 +161,28 @@ export const syncUser = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    if (!identity.email) throw new Error("Authenticated user has no email");
+
+    const normalizedEmail = normalizeEmail(args.email || identity.email);
+    const role = getRoleFromIdentity(identity) ?? "admin";
 
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .first();
 
     if (existing) {
       await ctx.db.patch(existing._id, {
         name: args.name,
+        email: normalizedEmail,
+        role: existing.role ?? role,
       });
       return existing._id;
     } else {
       return await ctx.db.insert("users", {
-        email: args.email,
+        email: normalizedEmail,
         name: args.name,
-        role: "admin",
+        role,
         createdAt: Date.now(),
       });
     }
