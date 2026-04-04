@@ -45,7 +45,10 @@ export default function DashboardLayout({
   // Security check: If employee tries to access /admin, redirect them back to their dashboard
   // @ts-ignore
   const role = user.metadata?.role || user.clientReadOnlyMetadata?.role;
+  console.log("AdminLayout: User role", role);
+  
   if (role === "employee") {
+    console.log("AdminLayout: Employee detected, redirecting to /dashboard");
     router.replace("/dashboard");
     return null;
   }
