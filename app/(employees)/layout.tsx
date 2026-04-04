@@ -33,10 +33,10 @@ export default function EmployeeLayout({
 
   const navigation = [
     { name: "My Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Attendance", href: "/dashboard/attendance", icon: Clock },
-    { name: "My Documents", href: "/dashboard/documents", icon: FileCheck },
-    { name: "Company Directory", href: "/dashboard/directory", icon: Building2 },
-    { name: "Settings", href: "/dashboard/settings", icon: Settings },
+    { name: "Attendance", href: "/attendance", icon: Clock },
+    { name: "My Documents", href: "/documents", icon: FileCheck },
+    { name: "Company Directory", href: "/directory", icon: Building2 },
+    { name: "Settings", href: "/settings", icon: Settings },
   ];
 
   return (
@@ -70,7 +70,7 @@ export default function EmployeeLayout({
             <X className="h-5 w-5" />
           </button>
         </div>
-        
+
         <div className="flex flex-col h-[calc(100vh-64px)] justify-between p-4">
           <nav className="space-y-1">
             {navigation.map((item) => (
