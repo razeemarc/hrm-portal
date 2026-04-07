@@ -137,6 +137,10 @@ export interface OfferLetterData {
   acceptanceText?: string;
   closingText?: string;
   footerText?: string;
+  positionLabel?: string;
+  departmentLabel?: string;
+  startDateLabel?: string;
+  packageLabel?: string;
 }
 
 export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
@@ -157,6 +161,10 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
   acceptanceText,
   closingText,
   footerText,
+  positionLabel,
+  departmentLabel,
+  startDateLabel,
+  packageLabel,
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>
@@ -201,11 +209,11 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
             <Text style={styles.tableCell}>Details</Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>Position</Text>
+            <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
             <Text style={styles.tableCell}>{role}</Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>Department</Text>
+            <Text style={styles.tableCell}>{departmentLabel || "Department"}</Text>
             <Text style={styles.tableCell}>{department}</Text>
           </View>
           <View style={styles.tableRow}>
@@ -213,19 +221,17 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
             <Text style={styles.tableCell}>Full-time</Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>Start Date</Text>
+            <Text style={styles.tableCell}>{startDateLabel || "Start Date"}</Text>
             <Text style={styles.tableCell}>
               {new Date(startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
             </Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>Annual CTC</Text>
+            <Text style={styles.tableCell}>{packageLabel || (packageType === "stipend" ? "Monthly Stipend" : "Annual CTC")}</Text>
             <Text style={styles.tableCell}>
               {packageType === "lpa"
-                ? `₹${(salary / 100000).toFixed(1)} LPA`
-                : packageType === "monthly"
-                ? `₹${salary.toLocaleString("en-IN")}/month`
-                : `₹${salary.toLocaleString("en-IN")}/month`
+                ? `Rs. ${salary.toFixed(1)} LPA`
+                : `Rs. ${salary.toLocaleString("en-IN")}/month`
               }
             </Text>
           </View>
@@ -301,6 +307,10 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
   acceptanceText,
   closingText,
   footerText,
+  positionLabel,
+  departmentLabel,
+  startDateLabel,
+  packageLabel,
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>
@@ -345,11 +355,11 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
             <Text style={styles.tableCell}>Details</Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>Position</Text>
+            <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
             <Text style={styles.tableCell}>{role}</Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>Department</Text>
+            <Text style={styles.tableCell}>{departmentLabel || "Department"}</Text>
             <Text style={styles.tableCell}>{department}</Text>
           </View>
           <View style={styles.tableRow}>
@@ -357,19 +367,19 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
             <Text style={styles.tableCell}>Full-time</Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>Start Date</Text>
+            <Text style={styles.tableCell}>{startDateLabel || "Start Date"}</Text>
             <Text style={styles.tableCell}>
               {new Date(startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
             </Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>Monthly Stipend</Text>
+            <Text style={styles.tableCell}>{packageLabel || (packageType === "stipend" ? "Monthly Stipend" : "Annual CTC")}</Text>
             <Text style={styles.tableCell}>
               {packageType === "stipend"
-                ? `₹${stipend.toLocaleString("en-IN")}/month`
+                ? `Rs. ${stipend.toLocaleString("en-IN")}/month`
                 : packageType === "lpa"
-                ? `₹${(stipend / 100000).toFixed(1)} LPA`
-                : `₹${stipend.toLocaleString("en-IN")}/month`
+                ? `Rs. ${stipend.toFixed(1)} LPA`
+                : `Rs. ${stipend.toLocaleString("en-IN")}/month`
               }
             </Text>
           </View>

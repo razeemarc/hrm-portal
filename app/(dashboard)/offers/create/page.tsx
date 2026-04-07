@@ -52,13 +52,17 @@ const offerSchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
   companyAddress: z.string().min(1, "Company address is required"),
   hrName: z.string().min(1, "HR name is required"),
-  introductionText: z.string().optional(),
-  benefitsText: z.string().optional(),
-  acceptanceText: z.string().optional(),
-  closingText: z.string().optional(),
-  footerText: z.string().optional(),
-  hrSignature: z.string().optional(),
-  companyLogo: z.string().optional(),
+  introductionText: z.string(),
+  benefitsText: z.string(),
+  acceptanceText: z.string(),
+  closingText: z.string(),
+  footerText: z.string(),
+  hrSignature: z.string(),
+  companyLogo: z.string(),
+  positionLabel: z.string(),
+  departmentLabel: z.string(),
+  startDateLabel: z.string(),
+  packageLabel: z.string(),
 });
 
 type OfferFormValues = z.infer<typeof offerSchema>;
@@ -87,13 +91,19 @@ export default function CreateOfferPage() {
       companyName: "Ladder Academy",
       companyAddress: "123 Tech Street, San Francisco, CA 94105",
       hrName: "HR Manager",
+      hrSignature: "",
+      companyLogo: "",
+      positionLabel: "Position",
+      departmentLabel: "Department",
+      startDateLabel: "Start Date",
+      packageLabel: "Annual CTC",
       introductionText: "",
       benefitsText: "",
       acceptanceText: "",
       closingText: "",
       footerText: "",
-      hrSignature: "",
-      companyLogo: "",
+      startDate: new Date(),
+      expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
   });
 
@@ -131,6 +141,10 @@ export default function CreateOfferPage() {
     const acceptanceText = form.watch("acceptanceText");
     const closingText = form.watch("closingText");
     const footerText = form.watch("footerText");
+    const positionLabel = form.watch("positionLabel");
+    const departmentLabel = form.watch("departmentLabel");
+    const startDateLabel = form.watch("startDateLabel");
+    const packageLabel = form.watch("packageLabel");
 
     return {
       candidateName: selectedCandidate?.name ?? "Candidate Name",
@@ -207,13 +221,14 @@ export default function CreateOfferPage() {
     return (
       <span className={cn("relative inline-block min-w-[20px]", className)}>
         {isEditing ? (
-          <span className="flex items-center gap-2">
+          <span className="block">
             {isTextarea ? (
               <Textarea
                 {...form.register(fieldName)}
                 placeholder={placeholder}
-                className="text-sm min-w-[200px]"
+                className="text-sm min-w-[200px] border-2 border-[#7c3aed] bg-white shadow-[0_0_0_3px_rgba(124,58,237,0.15)] rounded-md focus:border-[#7c3aed] focus:ring-0 transition-all"
                 autoFocus
+                rows={4}
                 onBlur={() => setEditingField(null)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setEditingField(null); }
@@ -224,175 +239,251 @@ export default function CreateOfferPage() {
               <Input
                 {...form.register(fieldName)}
                 placeholder={placeholder}
-                className="text-sm h-8 min-w-[150px]"
+                className="text-sm h-8 min-w-[150px] border-2 border-[#7c3aed] bg-white shadow-[0_0_0_3px_rgba(124,58,237,0.15)] rounded-md focus:border-[#7c3aed] focus:ring-0 transition-all"
                 autoFocus
+                type={fieldName === "package" ? "number" : "text"}
                 onBlur={() => setEditingField(null)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") { e.preventDefault(); setEditingField(null); }
                   if (e.key === "Escape") setEditingField(null);
+                }}
+                onChange={(e) => {
+                  if (fieldName === "package") {
+                    form.setValue("package", Number(e.target.value));
+                  }
                 }}
               />
             )}
           </span>
         ) : (
           <span
-            className="cursor-pointer hover:bg-primary/5 hover:ring-1 hover:ring-primary/20 rounded px-1 -mx-1 transition-all group"
+            className="cursor-text rounded px-1 -mx-1 py-0.5 transition-all duration-150 hover:outline hover:outline-2 hover:outline-[#7c3aed]/50 hover:bg-[#7c3aed]/[0.04] group"
             onClick={() => setEditingField(fieldName)}
           >
-            {form.watch(fieldName as any) || <span className="text-muted-foreground italic">{placeholder}</span>}
-            <Edit3 className="h-3 w-3 absolute -right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 transition-opacity" />
+            {form.watch(fieldName as any) || <span className="text-gray-400 italic">{placeholder}</span>}
           </span>
         )}
       </span>
     );
   };
 
+  // Add a helper for editing labels without necessarily being in form state, 
+  // or just use existing ones if we've added them to schema.
+
   const OfferLetterHTMLPreview = () => {
     const data = previewData;
     const isIntern = data.offerType === "intern";
 
     return (
-      <div className="bg-white shadow-2xl mx-auto my-4 p-[50px] min-h-[1050px] w-[800px] text-[#333] font-sans leading-relaxed relative flex flex-col">
-        {/* Header */}
-        <div className="text-center mb-10 border-b pb-6">
-          {data.companyLogo && (
-            <img src={data.companyLogo} alt="Logo" className="h-12 object-contain mx-auto mb-4" />
-          )}
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            {renderEditField("companyName", "Company Name")}
-          </h1>
-          <p className="text-sm text-gray-500">
-            {renderEditField("companyAddress", "Company Address")}
-          </p>
-        </div>
+      <div className="bg-white shadow-2xl mx-auto my-4 min-h-[1100px] w-[800px] text-[#333] relative flex flex-col overflow-hidden" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+        {/* Decorative top gradient bar */}
+        <div className="h-2 w-full" style={{ background: "linear-gradient(90deg, #1e293b 0%, #7c3aed 40%, #c084fc 70%, #e9d5ff 100%)" }} />
 
-        {/* Date & Ref */}
-        <div className="flex justify-end mb-8 text-sm text-gray-600">
-          <div>
-            <strong>Date:</strong> {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-          </div>
-        </div>
+        {/* Decorative side accent */}
+        <div className="absolute left-0 top-0 w-[6px] h-full" style={{ background: "linear-gradient(180deg, #7c3aed 0%, #a78bfa 50%, #e9d5ff 100%)" }} />
 
-        {/* Candidate Info */}
-        <div className="mb-8">
-          <p className="font-semibold mb-1">To,</p>
-          <p className="text-lg font-bold">{data.candidateName}</p>
-          <p className="text-gray-600 italic">{data.candidateEmail}</p>
-        </div>
+        {/* Watermark pattern */}
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 50px, #7c3aed 50px, #7c3aed 51px)" }} />
 
-        {/* Title */}
-        <div className="text-center mb-8">
-          <h2 className="text-xl font-extrabold border-y-2 border-gray-900 py-2 inline-block px-8 uppercase tracking-widest">
-            {isIntern ? "Internship Offer Letter" : "Letter of Appointment"}
-          </h2>
-        </div>
-
-        {/* Opening */}
-        <div className="mb-6">
-          <p className="mb-4">Dear <span className="font-bold">{data.candidateName}</span>,</p>
-          <div className="text-justify leading-relaxed">
-            {renderEditField(
-              "introductionText",
-              isIntern
-                ? `We are pleased to offer you an internship position as ${data.role} at ${data.companyName}. We believe this internship will provide you with valuable industry experience and help you develop your professional skills.`
-                : `We are pleased to offer you the position of ${data.role} at ${data.companyName}. We believe your skills and experience will be a valuable addition to our ${data.department} team.`,
-              true,
-              "w-full text-justify"
+        <div className="p-[50px] pl-[56px] flex flex-col flex-1 relative z-10">
+          {/* Header */}
+          <div className="text-center mb-8 pb-6 relative">
+            {data.companyLogo && (
+              <img src={data.companyLogo} alt="Logo" className="h-14 object-contain mx-auto mb-4" />
             )}
-          </div>
-        </div>
-
-        {/* Details Table */}
-        <div className="mb-8 overflow-hidden rounded-lg border border-gray-200">
-          <div className="bg-gray-50 border-b border-gray-200 grid grid-cols-2 px-4 py-2 font-bold text-sm">
-            <div>Description</div>
-            <div>Details</div>
-          </div>
-          <div className="grid grid-cols-2 px-4 py-3 border-b border-gray-100 text-sm">
-            <div className="font-medium text-gray-500">Position</div>
-            <div className="font-bold text-gray-900">{data.role}</div>
-          </div>
-          <div className="grid grid-cols-2 px-4 py-3 border-b border-gray-100 text-sm">
-            <div className="font-medium text-gray-500">Department</div>
-            <div className="font-bold text-gray-900">{data.department}</div>
-          </div>
-          <div className="grid grid-cols-2 px-4 py-3 border-b border-gray-100 text-sm">
-            <div className="font-medium text-gray-500">Start Date</div>
-            <div className="font-bold text-gray-900">
-              {new Date(data.startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+            <h1 className="text-[28px] font-bold tracking-wide mb-1" style={{ color: "#1e293b", fontFamily: "'Georgia', serif" }}>
+              {renderEditField("companyName", "Company Name")}
+            </h1>
+            <p className="text-[13px] tracking-[0.15em] uppercase" style={{ color: "#64748b" }}>
+              {renderEditField("companyAddress", "Company Address")}
+            </p>
+            {/* Gold decorative line */}
+            <div className="flex items-center justify-center gap-3 mt-5">
+              <div className="h-[1px] w-20" style={{ background: "linear-gradient(90deg, transparent, #b8860b)" }} />
+              <div className="w-2 h-2 rotate-45 border border-[#b8860b]" />
+              <div className="h-[1px] w-20" style={{ background: "linear-gradient(90deg, #b8860b, transparent)" }} />
             </div>
           </div>
-          <div className="grid grid-cols-2 px-4 py-3 text-sm bg-blue-50/50">
-            <div className="font-semibold text-blue-900">
-              {isIntern ? "Monthly Stipend" : "Annual CTC"}
-            </div>
-            <div className="font-bold text-blue-900 tabular-nums lining-nums">
-              {data.packageType === "lpa"
-                ? `₹${(data.package / 100000).toFixed(1)} LPA`
-                : `₹${data.package.toLocaleString("en-IN")}/month`
-              }
+
+          {/* Date */}
+          <div className="flex justify-end mb-8 text-[13px]" style={{ color: "#475569" }}>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold" style={{ color: "#1e293b" }}>Date:</span>
+              <span>{new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
             </div>
           </div>
-        </div>
 
-        {/* Benefits */}
-        <div className="mb-8">
-          <h3 className="font-bold text-md mb-2 border-l-4 border-primary pl-3">2. Benefits</h3>
-          <div className="text-gray-700 leading-relaxed pl-4">
-            {renderEditField(
-              "benefitsText",
-              isIntern ? "As an intern, you will receive mentorship, certificate of completion, and stipend." : "As a full-time employee, you will be entitled to health insurance, paid leaves, and performance reviews.",
-              true,
-              "w-full"
-            )}
+          {/* Candidate Info */}
+          <div className="mb-8">
+            <p className="font-semibold mb-1 text-[13px] uppercase tracking-wider" style={{ color: "#64748b" }}>To,</p>
+            <p className="text-[18px] font-bold" style={{ color: "#1e293b" }}>
+              {selectedCandidate?.name ?? "Candidate Name"}
+            </p>
+            <p className="text-[13px] italic" style={{ color: "#64748b" }}>
+              {selectedCandidate?.email ?? "candidate@email.com"}
+            </p>
           </div>
-        </div>
 
-        {/* Acceptance & Closing */}
-        <div className="mb-10">
-          <h3 className="font-bold text-md mb-2 border-l-4 border-primary pl-3">3. Acceptance</h3>
-          <div className="text-gray-700 mb-6 pl-4 leading-relaxed">
-            {renderEditField(
-              "acceptanceText",
-              "Please sign and return a copy of this letter within 7 days to confirm your acceptance.",
-              true,
-              "w-full"
-            )}
+          {/* Title — NOT editable */}
+          <div className="text-center mb-8 py-1">
+            <div className="inline-block relative px-10">
+              <div className="absolute inset-x-0 top-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent 10%, #1e293b 30%, #1e293b 70%, transparent 90%)" }} />
+              <h2 className="text-[20px] font-extrabold uppercase tracking-[0.25em] py-3 select-none" style={{ color: "#1e293b", fontFamily: "'Georgia', serif" }}>
+                {isIntern ? "Internship Offer Letter" : "Letter of Appointment"}
+              </h2>
+              <div className="absolute inset-x-0 bottom-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent 10%, #1e293b 30%, #1e293b 70%, transparent 90%)" }} />
+            </div>
           </div>
-          <div className="font-medium italic text-gray-800">
-            {renderEditField("closingText", "We look forward to having you as part of our team!", false, "w-full")}
-          </div>
-        </div>
 
-        {/* Signatures */}
-        <div className="mt-auto pt-10 grid grid-cols-2 gap-20">
-          <div className="text-center">
-            <div className="border-b border-gray-400 h-10 mb-2"></div>
-            <p className="text-xs font-bold uppercase text-gray-500">Candidate Signature</p>
-            <p className="text-sm mt-1">{data.candidateName}</p>
-          </div>
-          <div className="text-center">
-            <div className="h-10 mb-2 flex items-center justify-center">
-              {data.hrSignature ? (
-                <img src={data.hrSignature} alt="Signature" className="h-10 object-contain" />
-              ) : (
-                <div className="border-b border-gray-400 w-full h-full"></div>
+          {/* Opening paragraph */}
+          <div className="mb-6">
+            <p className="mb-4 text-[14px]" style={{ color: "#334155" }}>Dear <span className="font-bold" style={{ color: "#1e293b" }}>{data.candidateName}</span>,</p>
+            <div className="text-justify leading-[1.8] text-[14px]" style={{ color: "#475569" }}>
+              {renderEditField(
+                "introductionText",
+                isIntern
+                  ? `We are pleased to offer you an internship position as ${data.role} at ${data.companyName}. We believe this internship will provide you with valuable industry experience and help you develop your professional skills.`
+                  : `We are pleased to offer you the position of ${data.role} at ${data.companyName}. We believe your skills and experience will be a valuable addition to our ${data.department} team.`,
+                true,
+                "w-full text-justify"
               )}
             </div>
-            <p className="text-xs font-bold uppercase text-gray-500 tracking-wider">Authorized Signatory</p>
-            <div className="text-sm font-bold mt-1">
-              {renderEditField("hrName", "HR Name")}
+          </div>
+
+          {/* Details Table */}
+          <div className="mb-8 overflow-hidden rounded-lg border" style={{ borderColor: "#e2e8f0" }}>
+            <div className="grid grid-cols-2 px-5 py-3 font-bold text-[13px] uppercase tracking-wider" style={{ background: "linear-gradient(135deg, #1e293b, #334155)", color: "#f8fafc" }}>
+              <div>Description</div>
+              <div>Details</div>
             </div>
-            <p className="text-[10px] text-gray-400">HR Manager</p>
+            <div className="grid grid-cols-2 px-5 py-3 border-b text-[13px]" style={{ borderColor: "#f1f5f9" }}>
+              <div className="font-medium" style={{ color: "#64748b" }}>
+                {renderEditField("positionLabel", "Position")}
+              </div>
+              <div className="font-bold" style={{ color: "#1e293b" }}>
+                {renderEditField("role", "Role")}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 px-5 py-3 border-b text-[13px]" style={{ background: "#fafafa", borderColor: "#f1f5f9" }}>
+              <div className="font-medium" style={{ color: "#64748b" }}>
+                {renderEditField("departmentLabel", "Department")}
+              </div>
+              <div className="font-bold" style={{ color: "#1e293b" }}>
+                {renderEditField("department", "Department")}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 px-5 py-3 border-b text-[13px]" style={{ borderColor: "#f1f5f9" }}>
+              <div className="font-medium" style={{ color: "#64748b" }}>
+                {renderEditField("startDateLabel", "Start Date")}
+              </div>
+              <div className="font-bold" style={{ color: "#1e293b" }}>
+                {new Date(data.startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 px-5 py-4 text-[13px]" style={{ background: "linear-gradient(135deg, #ede9fe, #f5f3ff)" }}>
+              <div className="font-semibold" style={{ color: "#5b21b6" }}>
+                {renderEditField("packageLabel", isIntern ? "Monthly Stipend" : "Annual CTC")}
+              </div>
+              <div className="font-bold text-[15px]" style={{ color: "#5b21b6" }}>
+                {editingField === "package" ? (
+                  <Input
+                    type="number"
+                    defaultValue={form.getValues("package")}
+                    className="h-8 w-24 border-2 border-[#7c3aed]"
+                    autoFocus
+                    onBlur={() => setEditingField(null)}
+                    onChange={(e) => form.setValue("package", Number(e.target.value))}
+                    onKeyDown={(e) => e.key === "Enter" && setEditingField(null)}
+                  />
+                ) : (
+                  <span 
+                    className="cursor-text hover:bg-white/50 px-1 rounded transition-colors"
+                    onClick={() => setEditingField("package")}
+                  >
+                    {data.packageType === "lpa"
+                      ? `₹${data.package.toFixed(1)} LPA`
+                      : `₹${data.package.toLocaleString("en-IN")}/month`
+                    }
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Benefits */}
+          <div className="mb-8">
+            <h3 className="font-bold text-[14px] mb-2 pl-4 relative" style={{ color: "#1e293b" }}>
+              <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full" style={{ background: "linear-gradient(180deg, #7c3aed, #a78bfa)" }} />
+              2. Benefits
+            </h3>
+            <div className="leading-[1.8] pl-4 text-[14px]" style={{ color: "#475569" }}>
+              {renderEditField(
+                "benefitsText",
+                isIntern ? "As an intern, you will receive mentorship, certificate of completion, and stipend." : "As a full-time employee, you will be entitled to health insurance, paid leaves, and performance reviews.",
+                true,
+                "w-full"
+              )}
+            </div>
+          </div>
+
+          {/* Acceptance & Closing */}
+          <div className="mb-10">
+            <h3 className="font-bold text-[14px] mb-2 pl-4 relative" style={{ color: "#1e293b" }}>
+              <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full" style={{ background: "linear-gradient(180deg, #7c3aed, #a78bfa)" }} />
+              3. Acceptance
+            </h3>
+            <div className="mb-6 pl-4 leading-[1.8] text-[14px]" style={{ color: "#475569" }}>
+              {renderEditField(
+                "acceptanceText",
+                "Please sign and return a copy of this letter within 7 days to confirm your acceptance.",
+                true,
+                "w-full"
+              )}
+            </div>
+            <div className="italic text-[14px] font-medium" style={{ color: "#334155" }}>
+              {renderEditField("closingText", "We look forward to having you as part of our team!", false, "w-full")}
+            </div>
+          </div>
+
+          {/* Signatures */}
+          <div className="mt-auto pt-10 grid grid-cols-2 gap-20">
+            <div className="text-center">
+              <div className="h-10 mb-2" style={{ borderBottom: "1px solid #94a3b8" }} />
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "#64748b" }}>Candidate Signature</p>
+              <p className="text-[13px] mt-1 font-medium" style={{ color: "#334155" }}>{data.candidateName}</p>
+            </div>
+            <div className="text-center">
+              <div className="h-10 mb-2 flex items-center justify-center">
+                {data.hrSignature ? (
+                  <img src={data.hrSignature} alt="Signature" className="h-10 object-contain" />
+                ) : (
+                  <div className="w-full h-full" style={{ borderBottom: "1px solid #94a3b8" }} />
+                )}
+              </div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "#64748b" }}>Authorized Signatory</p>
+              <div className="text-[13px] font-bold mt-1" style={{ color: "#334155" }}>
+                {renderEditField("hrName", "HR Name")}
+              </div>
+              <p className="text-[10px]" style={{ color: "#94a3b8" }}>HR Manager</p>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-10 pt-4 text-center relative">
+            {/* Decorative footer line */}
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <div className="h-[1px] flex-1" style={{ background: "linear-gradient(90deg, transparent, #cbd5e1)" }} />
+              <div className="w-1.5 h-1.5 rotate-45" style={{ background: "#7c3aed" }} />
+              <div className="h-[1px] flex-1" style={{ background: "linear-gradient(90deg, #cbd5e1, transparent)" }} />
+            </div>
+            <div className="text-[10px] italic" style={{ color: "#94a3b8", fontFamily: "'Georgia', serif" }}>
+              {renderEditField("footerText", "This document is confidential and intended for the named recipient only.", false, "w-full")}
+            </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-10 border-t pt-4 text-center">
-          <div className="text-[10px] text-gray-400 italic font-serif">
-            {renderEditField("footerText", "This document is confidential and intended for the named recipient only.", false, "w-full")}
-          </div>
-        </div>
+        {/* Decorative bottom gradient bar */}
+        <div className="h-2 w-full mt-auto" style={{ background: "linear-gradient(90deg, #e9d5ff 0%, #c084fc 30%, #7c3aed 60%, #1e293b 100%)" }} />
       </div>
     );
   };
@@ -411,7 +502,7 @@ export default function CreateOfferPage() {
 
       <div className="grid grid-cols-3 gap-6 h-[calc(100vh-200px)]">
         {/* PDF Preview Section - Takes 2 columns */}
-        <div className="col-span-2 bg-gray-100 rounded-lg border overflow-hidden">
+        <div className="col-span-2 bg-gray-100 rounded-lg border flex flex-col overflow-hidden">
           <div className="bg-muted px-4 py-2 border-b flex justify-between items-center shrink-0">
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium">Preview Mode:</span>
@@ -444,7 +535,7 @@ export default function CreateOfferPage() {
               </span>
             )}
           </div>
-          <div className="flex-1 overflow-auto bg-gray-200/50 backdrop-blur-sm p-4 scrollbar-hide">
+          <div className="flex-1 overflow-y-auto bg-gray-200/50 backdrop-blur-sm p-4" style={{ maxHeight: 'calc(100vh - 280px)' }}>
             {previewMode === "edit" ? (
               <OfferLetterHTMLPreview />
             ) : (
@@ -545,7 +636,7 @@ export default function CreateOfferPage() {
                   name="package"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs">Amount (₹)</FormLabel>
+                      <FormLabel className="text-xs">Amount</FormLabel>
                       <FormControl>
                         <Input
                           type="number"

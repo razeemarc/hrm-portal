@@ -17,6 +17,8 @@ import {
   Mail,
   Calendar,
   DollarSign,
+  ChevronDown,
+  Pencil,
   Building,
   Briefcase,
   Loader2,
@@ -34,18 +36,70 @@ const statusColors: Record<string, string> = {
   expired: "bg-gray-100 text-gray-800",
 };
 
+const EditableField = ({
+  value,
+  onSave,
+  className = "",
+}: {
+  value: string;
+  onSave: (val: string) => void;
+  className?: string;
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempValue, setTempValue] = useState(value);
+
+  const handleSave = () => {
+    if (tempValue !== value) {
+      onSave(tempValue);
+    }
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <input
+        className="border rounded px-2 py-1 text-sm font-medium w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+        value={tempValue}
+        onChange={(e) => setTempValue(e.target.value)}
+        autoFocus
+        onBlur={handleSave}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSave();
+          if (e.key === "Escape") {
+            setTempValue(value);
+            setIsEditing(false);
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`cursor-pointer hover:bg-gray-100 px-2 py-1 -mx-2 rounded transition-colors flex items-center justify-between group ${className}`}
+      onClick={() => setIsEditing(true)}
+    >
+      <span>{value}</span>
+      <Pencil className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100" />
+    </div>
+  );
+};
+
 export default function OfferViewPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const detailsRef = useRef<HTMLDivElement>(null);
 
   // ── Convex queries ──
   const offerData = useQuery(api.functions.offers.getOfferById, {
     id: id as Id<"offers">,
   });
   const settings = useQuery(api.functions.settings.getSettings);
+  const updateOffer = useMutation(api.functions.offers.updateOffer);
+  const updateCandidate = useMutation(api.functions.candidates.updateCandidate);
 
   // ── Convex mutations ──
   const updateOfferStatus = useMutation(api.functions.offers.updateOfferStatus);
@@ -152,10 +206,21 @@ export default function OfferViewPage({
           <p className="text-gray-600">
             {companyName} is pleased to extend an offer to you
           </p>
+          <div className="mt-8">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-500 hover:text-gray-900 group"
+              onClick={() => detailsRef.current?.scrollIntoView({ behavior: "smooth" })}
+            >
+              Scroll down for details
+              <ChevronDown className="h-4 w-4 ml-2 animate-bounce group-hover:animate-none" />
+            </Button>
+          </div>
         </div>
 
         {/* Offer Card */}
-        <Card className="mb-6">
+        <Card className="mb-6" ref={detailsRef}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Offer Details</CardTitle>
@@ -168,8 +233,16 @@ export default function OfferViewPage({
             {/* Candidate Info */}
             <div>
               <h3 className="font-semibold mb-2">Candidate</h3>
-              <div className="text-gray-600">{candidate?.name}</div>
-              <div className="text-sm text-gray-500">{candidate?.email}</div>
+              <EditableField
+                value={candidate?.name || ""}
+                onSave={(val) => updateCandidate({ id: candidate?._id as Id<"candidates">, name: val })}
+                className="text-gray-600 font-normal"
+              />
+              <EditableField
+                value={candidate?.email || ""}
+                onSave={(val) => updateCandidate({ id: candidate?._id as Id<"candidates">, email: val })}
+                className="text-sm text-gray-500 font-normal"
+              />
             </div>
 
             <Separator />
@@ -180,14 +253,22 @@ export default function OfferViewPage({
                 <Briefcase className="h-5 w-5 text-gray-400" />
                 <div>
                   <div className="text-sm text-gray-500">Position</div>
-                  <div className="font-medium">{offer.role}</div>
+                  <EditableField
+                    value={offer.role}
+                    onSave={(val) => updateOffer({ id: id as Id<"offers">, role: val })}
+                    className="font-medium"
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Building className="h-5 w-5 text-gray-400" />
                 <div>
                   <div className="text-sm text-gray-500">Department</div>
-                  <div className="font-medium">{offer.department}</div>
+                  <EditableField
+                    value={offer.department}
+                    onSave={(val) => updateOffer({ id: id as Id<"offers">, department: val })}
+                    className="font-medium"
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -200,11 +281,18 @@ export default function OfferViewPage({
                   <div className="text-sm text-gray-500">
                     {offer.offerType === "intern" ? "Monthly Stipend" : "Annual CTC"}
                   </div>
-                  <div className="font-medium tabular-nums lining-nums">
+                  <div className="font-medium flex items-center gap-2 group cursor-pointer hover:bg-gray-100 px-2 py-1 -mx-2 rounded transition-colors"
+                       onClick={() => {
+                         const val = window.prompt("Enter new package amount (number):", offer.package.toString());
+                         if (val && !isNaN(Number(val))) {
+                           updateOffer({ id: id as Id<"offers">, package: Number(val) });
+                         }
+                       }}>
                     {offer.packageType === "lpa"
-                      ? `₹${(offer.package / 100000).toFixed(1)} LPA`
+                      ? `₹${offer.package.toFixed(1)} LPA`
                       : `₹${offer.package.toLocaleString("en-IN")}${offer.packageType === "monthly" ? "/month" : ""}`
                     }
+                    <Pencil className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100" />
                   </div>
                 </div>
               </div>
