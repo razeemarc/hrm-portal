@@ -59,6 +59,11 @@ const offerSchema = z.object({
   footerText: z.string().optional(),
   hrSignature: z.string().optional(),
   companyLogo: z.string().optional(),
+  titleText: z.string().optional(),
+  positionLabel: z.string().optional(),
+  departmentLabel: z.string().optional(),
+  startDateLabel: z.string().optional(),
+  packageLabel: z.string().optional(),
 });
 
 type OfferFormValues = z.infer<typeof offerSchema>;
@@ -94,6 +99,11 @@ export default function CreateOfferPage() {
       footerText: "",
       hrSignature: "",
       companyLogo: "",
+      titleText: "",
+      positionLabel: "Position",
+      departmentLabel: "Department",
+      startDateLabel: "Start Date",
+      packageLabel: "Annual CTC",
     },
   });
 
@@ -151,8 +161,13 @@ export default function CreateOfferPage() {
       acceptanceText: acceptanceText || undefined,
       closingText: closingText || undefined,
       footerText: footerText || undefined,
+      titleText: form.watch("titleText") || undefined,
+      positionLabel: form.watch("positionLabel") || "Position",
+      departmentLabel: form.watch("departmentLabel") || "Department",
+      startDateLabel: form.watch("startDateLabel") || "Start Date",
+      packageLabel: form.watch("packageLabel") || (offerType === "intern" ? "Monthly Stipend" : "Annual CTC"),
     };
-  }, [selectedCandidate, form.watch("offerType"), form.watch("role"), form.watch("department"), form.watch("package"), form.watch("packageType"), form.watch("startDate"), form.watch("companyName"), form.watch("companyAddress"), form.watch("hrName"), form.watch("hrSignature"), form.watch("companyLogo"), form.watch("introductionText"), form.watch("benefitsText"), form.watch("acceptanceText"), form.watch("closingText"), form.watch("footerText")]);
+  }, [selectedCandidate, form.watch("offerType"), form.watch("role"), form.watch("department"), form.watch("package"), form.watch("packageType"), form.watch("startDate"), form.watch("companyName"), form.watch("companyAddress"), form.watch("hrName"), form.watch("hrSignature"), form.watch("companyLogo"), form.watch("introductionText"), form.watch("benefitsText"), form.watch("acceptanceText"), form.watch("closingText"), form.watch("footerText"), form.watch("titleText"), form.watch("positionLabel"), form.watch("departmentLabel"), form.watch("startDateLabel"), form.watch("packageLabel")]);
 
   const onSubmit = async (data: OfferFormValues) => {
     try {
@@ -189,7 +204,7 @@ export default function CreateOfferPage() {
         storageId: storageId,
       });
 
-      router.push("/offers");
+      router.push("/admin/offers");
       toast.success("Offer created and saved as PDF");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -203,17 +218,20 @@ export default function CreateOfferPage() {
 
   const renderEditField = (fieldName: keyof OfferFormValues, placeholder: string, isTextarea = false, className = "") => {
     const isEditing = editingField === fieldName;
+    const value = form.watch(fieldName as any);
+    const displayValue = value || placeholder;
 
     return (
-      <span className={cn("relative inline-block min-w-[20px]", className)}>
+      <span className={cn("relative inline-block min-w-[20px] group", className)}>
         {isEditing ? (
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2 w-full animate-in fade-in zoom-in-95 duration-200">
             {isTextarea ? (
               <Textarea
                 {...form.register(fieldName)}
                 placeholder={placeholder}
-                className="text-sm min-w-[200px]"
+                className="text-sm w-full min-h-[120px] resize-y shadow-sm border-primary/50 focus-visible:ring-primary"
                 autoFocus
+                onFocus={(e) => e.target.select()}
                 onBlur={() => setEditingField(null)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setEditingField(null); }
@@ -224,8 +242,9 @@ export default function CreateOfferPage() {
               <Input
                 {...form.register(fieldName)}
                 placeholder={placeholder}
-                className="text-sm h-8 min-w-[150px]"
+                className="text-sm h-8 w-full shadow-sm border-primary/50 focus-visible:ring-primary"
                 autoFocus
+                onFocus={(e) => e.target.select()}
                 onBlur={() => setEditingField(null)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") { e.preventDefault(); setEditingField(null); }
@@ -236,11 +255,24 @@ export default function CreateOfferPage() {
           </span>
         ) : (
           <span
-            className="cursor-pointer hover:bg-primary/5 hover:ring-1 hover:ring-primary/20 rounded px-1 -mx-1 transition-all group"
-            onClick={() => setEditingField(fieldName)}
+            className={cn(
+              "cursor-pointer hover:bg-blue-50/50 hover:ring-2 hover:ring-blue-200 rounded px-1.5 py-0.5 -mx-1.5 transition-all inline-block w-full",
+              !value && "text-muted-foreground italic opacity-80"
+            )}
+            onClick={() => {
+              if (!form.getValues(fieldName as any)) {
+                form.setValue(fieldName as any, placeholder, { shouldDirty: true });
+              }
+              setEditingField(fieldName);
+            }}
           >
-            {form.watch(fieldName as any) || <span className="text-muted-foreground italic">{placeholder}</span>}
-            <Edit3 className="h-3 w-3 absolute -right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 transition-opacity" />
+            {displayValue}
+            <span className="absolute top-0 right-0 translate-x-full -translate-y-1/4 opacity-0 group-hover:opacity-100 transition-opacity pl-2 z-10 flex">
+              <span className="bg-white rounded-md shadow-md border border-gray-200 p-1.5 text-blue-600 flex items-center gap-1.5">
+                <Edit3 className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-medium tracking-wide">Edit</span>
+              </span>
+            </span>
           </span>
         )}
       </span>
@@ -261,9 +293,9 @@ export default function CreateOfferPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-1">
             {renderEditField("companyName", "Company Name")}
           </h1>
-          <p className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500">
             {renderEditField("companyAddress", "Company Address")}
-          </p>
+          </div>
         </div>
 
         {/* Date & Ref */}
@@ -283,7 +315,7 @@ export default function CreateOfferPage() {
         {/* Title */}
         <div className="text-center mb-8">
           <h2 className="text-xl font-extrabold border-y-2 border-gray-900 py-2 inline-block px-8 uppercase tracking-widest">
-            {isIntern ? "Internship Offer Letter" : "Letter of Appointment"}
+            {renderEditField("titleText", isIntern ? "Internship Offer Letter" : "Letter of Appointment")}
           </h2>
         </div>
 
@@ -309,27 +341,27 @@ export default function CreateOfferPage() {
             <div>Details</div>
           </div>
           <div className="grid grid-cols-2 px-4 py-3 border-b border-gray-100 text-sm">
-            <div className="font-medium text-gray-500">Position</div>
-            <div className="font-bold text-gray-900">{data.role}</div>
+            <div className="font-medium text-gray-500">{renderEditField("positionLabel", "Position")}</div>
+            <div className="font-bold text-gray-900">{renderEditField("role", "Role")}</div>
           </div>
           <div className="grid grid-cols-2 px-4 py-3 border-b border-gray-100 text-sm">
-            <div className="font-medium text-gray-500">Department</div>
-            <div className="font-bold text-gray-900">{data.department}</div>
+            <div className="font-medium text-gray-500">{renderEditField("departmentLabel", "Department")}</div>
+            <div className="font-bold text-gray-900">{renderEditField("department", "Department")}</div>
           </div>
           <div className="grid grid-cols-2 px-4 py-3 border-b border-gray-100 text-sm">
-            <div className="font-medium text-gray-500">Start Date</div>
+            <div className="font-medium text-gray-500">{renderEditField("startDateLabel", "Start Date")}</div>
             <div className="font-bold text-gray-900">
               {new Date(data.startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
             </div>
           </div>
           <div className="grid grid-cols-2 px-4 py-3 text-sm bg-blue-50/50">
             <div className="font-semibold text-blue-900">
-              {isIntern ? "Monthly Stipend" : "Annual CTC"}
+              {renderEditField("packageLabel", isIntern ? "Monthly Stipend" : "Annual CTC")}
             </div>
             <div className="font-bold text-blue-900">
               {data.packageType === "lpa"
-                ? `₹${(data.package / 100000).toFixed(1)} LPA`
-                : `₹${data.package.toLocaleString("en-IN")}/month`
+                ? `Rs. ${Number(data.package).toFixed(1)} LPA`
+                : `Rs. ${data.package.toLocaleString("en-IN")}/month`
               }
             </div>
           </div>
@@ -400,7 +432,7 @@ export default function CreateOfferPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/offers">
+        <Link href="/admin/offers">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -411,7 +443,7 @@ export default function CreateOfferPage() {
 
       <div className="grid grid-cols-3 gap-6 h-[calc(100vh-200px)]">
         {/* PDF Preview Section - Takes 2 columns */}
-        <div className="col-span-2 bg-gray-100 rounded-lg border overflow-hidden">
+        <div className="col-span-2 bg-gray-100 rounded-lg border overflow-hidden flex flex-col">
           <div className="bg-muted px-4 py-2 border-b flex justify-between items-center shrink-0">
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium">Preview Mode:</span>
@@ -444,7 +476,7 @@ export default function CreateOfferPage() {
               </span>
             )}
           </div>
-          <div className="flex-1 overflow-auto bg-gray-200/50 backdrop-blur-sm p-4 scrollbar-hide">
+          <div className="flex-1 overflow-auto bg-gray-200/50 backdrop-blur-sm p-4">
             {previewMode === "edit" ? (
               <OfferLetterHTMLPreview />
             ) : (

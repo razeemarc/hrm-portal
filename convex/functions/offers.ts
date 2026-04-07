@@ -79,7 +79,7 @@ export const createOffer = mutation({
   handler: async (ctx, args) => {
     const { storageId, ...rest } = args;
     let documentUrl = undefined;
-    
+
     if (storageId) {
       documentUrl = await ctx.storage.getUrl(storageId as any) || undefined;
     }

@@ -35,7 +35,7 @@ export default function OffersPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Offer Letters</h1>
-        <Link href="/offers/create">
+        <Link href="/admin/offers/create">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             Create Offer
@@ -137,7 +137,7 @@ export default function OffersPage() {
                     <TableRow key={offer._id}>
                       <TableCell>
                         <div className="font-medium hover:underline">
-                          <Link href={`/candidates/${offer.candidateId}`}>
+                          <Link href={`/admin/candidates/${offer.candidateId}`}>
                             {offer.candidate?.name ?? "Unknown"}
                           </Link>
                         </div>
@@ -185,7 +185,7 @@ export default function OffersPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Link href={`/candidates/${offer.candidateId}`}>
+                          <Link href={`/admin/candidates/${offer.candidateId}`}>
                             <Button variant="outline" size="sm" title="View Candidate">
                               <Eye className="h-4 w-4" />
                             </Button>
