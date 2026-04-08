@@ -8,7 +8,14 @@ import { Users, FileCheck, ScrollText, Building2 } from "lucide-react";
 export default async function Home() {
   const user = await stackServerApp.getUser();
   if (user) {
-    redirect("/dashboard");
+    // @ts-ignore
+    const role = user.metadata?.role || user.serverMetadata?.role;
+    console.log("Home: Logged in user detected with role:", role);
+    if (role === "employee") {
+      redirect("/dashboard");
+    } else {
+      redirect("/admin/dashboard");
+    }
   }
 
   return (

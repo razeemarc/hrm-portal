@@ -155,7 +155,7 @@ export default function DashboardPage() {
                 {recent.map((c) => (
                   <Link
                     key={c._id}
-                    href={`/candidates/${c._id}`}
+                    href={`/admin/candidates/${c._id}`}
                     className="flex items-center justify-between p-2 rounded-md hover:bg-muted/40 transition-colors"
                   >
                     <div>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-3">
               <a
-                href="/candidates?invite=true"
+                href="/admin/candidates?invite=true"
                 className="block p-3 rounded-md border hover:bg-gray-50 transition-colors"
               >
                 <div className="font-medium text-sm">Invite New Candidate</div>
@@ -196,7 +196,7 @@ export default function DashboardPage() {
                 </div>
               </a>
               <a
-                href="/documents"
+                href="/admin/documents"
                 className="block p-3 rounded-md border hover:bg-gray-50 transition-colors"
               >
                 <div className="font-medium text-sm flex items-center gap-2">
@@ -212,7 +212,7 @@ export default function DashboardPage() {
                 </div>
               </a>
               <a
-                href="/offers"
+                href="/admin/offers"
                 className="block p-3 rounded-md border hover:bg-gray-50 transition-colors"
               >
                 <div className="font-medium text-sm">Create Offer Letter</div>

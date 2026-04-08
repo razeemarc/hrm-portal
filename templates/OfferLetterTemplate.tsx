@@ -137,6 +137,7 @@ export interface OfferLetterData {
   acceptanceText?: string;
   closingText?: string;
   footerText?: string;
+  titleText?: string;
   positionLabel?: string;
   departmentLabel?: string;
   startDateLabel?: string;
@@ -161,6 +162,7 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
   acceptanceText,
   closingText,
   footerText,
+  titleText,
   positionLabel,
   departmentLabel,
   startDateLabel,
@@ -188,7 +190,7 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
       </View>
 
       {/* Title */}
-      <Text style={styles.title}>LETTER OF APPOINTMENT</Text>
+      <Text style={styles.title}>{titleText || "LETTER OF APPOINTMENT"}</Text>
 
       {/* Body */}
       <View style={styles.section}>
@@ -210,9 +212,11 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
+            <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
             <Text style={styles.tableCell}>{role}</Text>
           </View>
           <View style={styles.tableRow}>
+            <Text style={styles.tableCell}>{departmentLabel || "Department"}</Text>
             <Text style={styles.tableCell}>{departmentLabel || "Department"}</Text>
             <Text style={styles.tableCell}>{department}</Text>
           </View>
@@ -222,8 +226,9 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableCell}>{startDateLabel || "Start Date"}</Text>
+            <Text style={styles.tableCell}>{startDateLabel || "Start Date"}</Text>
             <Text style={styles.tableCell}>
-              {new Date(startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+              {startDate ? new Date(startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "-"}
             </Text>
           </View>
           <View style={styles.tableRow}>
@@ -307,6 +312,7 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
   acceptanceText,
   closingText,
   footerText,
+  titleText,
   positionLabel,
   departmentLabel,
   startDateLabel,
@@ -334,7 +340,7 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
       </View>
 
       {/* Title */}
-      <Text style={styles.title}>INTERNSHIP OFFER LETTER</Text>
+      <Text style={styles.title}>{titleText || "INTERNSHIP OFFER LETTER"}</Text>
 
       {/* Body */}
       <View style={styles.section}>
@@ -356,9 +362,11 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
+            <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
             <Text style={styles.tableCell}>{role}</Text>
           </View>
           <View style={styles.tableRow}>
+            <Text style={styles.tableCell}>{departmentLabel || "Department"}</Text>
             <Text style={styles.tableCell}>{departmentLabel || "Department"}</Text>
             <Text style={styles.tableCell}>{department}</Text>
           </View>
@@ -368,8 +376,9 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableCell}>{startDateLabel || "Start Date"}</Text>
+            <Text style={styles.tableCell}>{startDateLabel || "Start Date"}</Text>
             <Text style={styles.tableCell}>
-              {new Date(startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+              {startDate ? new Date(startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "-"}
             </Text>
           </View>
           <View style={styles.tableRow}>
@@ -378,8 +387,8 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
               {packageType === "stipend"
                 ? `Rs. ${stipend.toLocaleString("en-IN")}/month`
                 : packageType === "lpa"
-                ? `Rs. ${stipend.toFixed(1)} LPA`
-                : `Rs. ${stipend.toLocaleString("en-IN")}/month`
+                  ? `Rs. ${stipend.toFixed(1)} LPA`
+                  : `Rs. ${stipend.toLocaleString("en-IN")}/month`
               }
             </Text>
           </View>

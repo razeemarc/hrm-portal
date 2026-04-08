@@ -449,7 +449,7 @@ export default function CandidatesPage() {
                       >
                         <Mail className="h-4 w-4" />
                       </Button>
-                      <Link href={`/candidates/${candidate._id}`}>
+                      <Link href={`/admin/candidates/${candidate._id}`}>
                         <Button variant="outline" size="sm">
                           View
                         </Button>

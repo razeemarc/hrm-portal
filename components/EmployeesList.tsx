@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -14,10 +14,19 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Eye, Building2, Mail, User, Briefcase, Calendar, DollarSign } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
-export default function EmployeesPage() {
+export function EmployeesList() {
   const [search, setSearch] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
 
   // Employees = candidates with status "hired"
   const hiredCandidates = useQuery(api.functions.candidates.getCandidatesByStatus, {
@@ -38,11 +47,9 @@ export default function EmployeesPage() {
   const departments = new Set(employees.map((e) => e.department).filter(Boolean)).size;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Employees</h1>
-
+    <div className="space-y-6">
       {/* Stats */}
-      <div className="grid sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
             {hiredCandidates === undefined ? (
@@ -84,7 +91,7 @@ export default function EmployeesPage() {
       </div>
 
       {/* Search */}
-      <div className="mb-6">
+      <div>
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
@@ -98,7 +105,7 @@ export default function EmployeesPage() {
 
       {/* Employee Table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-auto max-h-[60vh]">
           {hiredCandidates === undefined ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -113,13 +120,14 @@ export default function EmployeesPage() {
                   <TableHead>Type</TableHead>
                   <TableHead>Package</TableHead>
                   <TableHead>Hired Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredEmployees.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="text-center py-8 text-gray-500"
                     >
                       {search
@@ -131,11 +139,9 @@ export default function EmployeesPage() {
                   filteredEmployees.map((employee) => (
                     <TableRow key={employee._id}>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{employee.name}</div>
-                          <div className="text-sm text-gray-500">
-                            {employee.email}
-                          </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{employee.name}</span>
+                          <span className="text-xs text-muted-foreground">{employee.email}</span>
                         </div>
                       </TableCell>
                       <TableCell>{employee.role ?? "—"}</TableCell>
@@ -159,6 +165,16 @@ export default function EmployeesPage() {
                           ? new Date(employee.hiredAt).toLocaleDateString()
                           : "—"}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedEmployee(employee)}
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -167,6 +183,91 @@ export default function EmployeesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Employee Details Right Drawer */}
+      <Sheet open={!!selectedEmployee} onOpenChange={(open) => !open && setSelectedEmployee(null)}>
+        <SheetContent side="right" className="sm:max-w-md">
+          <SheetHeader className="mb-8">
+            <SheetTitle className="text-2xl font-bold">Employee Details</SheetTitle>
+            <SheetDescription>
+              Detailed information for {selectedEmployee?.name}.
+            </SheetDescription>
+          </SheetHeader>
+
+          {selectedEmployee && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">{selectedEmployee.name}</h3>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Mail className="h-3 w-3 mr-1" />
+                    {selectedEmployee.email}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <div className="flex items-start gap-3">
+                  <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Role</p>
+                    <p className="text-sm text-muted-foreground">{selectedEmployee.role ?? "Not specified"}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Department</p>
+                    {selectedEmployee.department ? (
+                      <Badge variant="secondary" className="mt-1">{selectedEmployee.department}</Badge>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Not specified</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Compensation</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedEmployee.package
+                        ? `$${selectedEmployee.package.toLocaleString()} (${selectedEmployee.offerType})`
+                        : "Not specified"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Hired Date</p>
+                    <p className="text-sm text-muted-foreground" suppressHydrationWarning>
+                      {selectedEmployee.hiredAt
+                        ? new Date(selectedEmployee.hiredAt).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })
+                        : "Not recorded"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t">
+                <Button variant="outline" className="w-full" onClick={() => setSelectedEmployee(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

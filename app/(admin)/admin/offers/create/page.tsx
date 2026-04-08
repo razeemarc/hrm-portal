@@ -57,6 +57,7 @@ const offerSchema = z.object({
   acceptanceText: z.string(),
   closingText: z.string(),
   footerText: z.string(),
+  titleText: z.string().optional(),
   hrSignature: z.string(),
   companyLogo: z.string(),
   positionLabel: z.string(),
@@ -93,6 +94,7 @@ export default function CreateOfferPage() {
       hrName: "HR Manager",
       hrSignature: "",
       companyLogo: "",
+      titleText: "",
       positionLabel: "Position",
       departmentLabel: "Department",
       startDateLabel: "Start Date",
@@ -165,8 +167,13 @@ export default function CreateOfferPage() {
       acceptanceText: acceptanceText || undefined,
       closingText: closingText || undefined,
       footerText: footerText || undefined,
+      titleText: form.watch("titleText") || undefined,
+      positionLabel: form.watch("positionLabel") || "Position",
+      departmentLabel: form.watch("departmentLabel") || "Department",
+      startDateLabel: form.watch("startDateLabel") || "Start Date",
+      packageLabel: form.watch("packageLabel") || (offerType === "intern" ? "Monthly Stipend" : "Annual CTC"),
     };
-  }, [selectedCandidate, form.watch("offerType"), form.watch("role"), form.watch("department"), form.watch("package"), form.watch("packageType"), form.watch("startDate"), form.watch("companyName"), form.watch("companyAddress"), form.watch("hrName"), form.watch("hrSignature"), form.watch("companyLogo"), form.watch("introductionText"), form.watch("benefitsText"), form.watch("acceptanceText"), form.watch("closingText"), form.watch("footerText")]);
+  }, [selectedCandidate, form.watch("offerType"), form.watch("role"), form.watch("department"), form.watch("package"), form.watch("packageType"), form.watch("startDate"), form.watch("companyName"), form.watch("companyAddress"), form.watch("hrName"), form.watch("hrSignature"), form.watch("companyLogo"), form.watch("introductionText"), form.watch("benefitsText"), form.watch("acceptanceText"), form.watch("closingText"), form.watch("footerText"), form.watch("titleText"), form.watch("positionLabel"), form.watch("departmentLabel"), form.watch("startDateLabel"), form.watch("packageLabel")]);
 
   const onSubmit = async (data: OfferFormValues) => {
     try {
@@ -203,7 +210,7 @@ export default function CreateOfferPage() {
         storageId: storageId,
       });
 
-      router.push("/offers");
+      router.push("/admin/offers");
       toast.success("Offer created and saved as PDF");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -217,9 +224,11 @@ export default function CreateOfferPage() {
 
   const renderEditField = (fieldName: keyof OfferFormValues, placeholder: string, isTextarea = false, className = "") => {
     const isEditing = editingField === fieldName;
+    const value = form.watch(fieldName as any);
+    const displayValue = value || placeholder;
 
     return (
-      <span className={cn("relative inline-block min-w-[20px]", className)}>
+      <span className={cn("relative inline-block min-w-[20px] group", className)}>
         {isEditing ? (
           <span className="block">
             {isTextarea ? (
@@ -396,7 +405,7 @@ export default function CreateOfferPage() {
                     onKeyDown={(e) => e.key === "Enter" && setEditingField(null)}
                   />
                 ) : (
-                  <span 
+                  <span
                     className="cursor-text hover:bg-white/50 px-1 rounded transition-colors"
                     onClick={() => setEditingField("package")}
                   >
@@ -491,7 +500,7 @@ export default function CreateOfferPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/offers">
+        <Link href="/admin/offers">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-5 w-5" />
           </Button>

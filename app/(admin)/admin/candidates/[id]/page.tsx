@@ -250,7 +250,7 @@ export default function CandidateDetailPage({
         <p className="text-muted-foreground mb-6">
           This candidate may have been deleted or the ID is invalid.
         </p>
-        <Button onClick={() => router.push("/candidates")}>
+        <Button onClick={() => router.push("/admin/candidates")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Candidates
         </Button>
@@ -263,7 +263,7 @@ export default function CandidateDetailPage({
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Link
-          href="/candidates"
+          href="/admin/candidates"
           className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
         >
           <ArrowLeft className="h-5 w-5" />
@@ -645,7 +645,7 @@ export default function CandidateDetailPage({
                 <div className="text-center py-4">
                   <p className="text-gray-500 mb-4">No offers created yet</p>
                   <Link
-                    href={`/offers?candidate=${candidate._id}`}
+                    href={`/admin/offers/create?candidateId=${candidate._id}`}
                     className={cn(buttonVariants({ variant: "default" }))}
                   >
                     Create Offer
