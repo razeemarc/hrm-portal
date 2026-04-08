@@ -1,3 +1,5 @@
+// generateOfferLetter.ts
+
 "use client";
 
 import { pdf } from "@react-pdf/renderer";
@@ -10,10 +12,13 @@ interface OfferData {
   role: string;
   department: string;
   package: number;
+  packageType: "lpa" | "monthly" | "stipend"; // ✅ was missing — caused wrong amount display in PDF
   startDate: number;
   companyName?: string;
   companyAddress?: string;
   hrName?: string;
+  hrSignature?: string;
+  companyLogo?: string;
 }
 
 const defaultCompanyInfo = {
@@ -26,6 +31,8 @@ export async function generateOfferLetterPDF(data: OfferData): Promise<Blob> {
   const templateData = {
     ...defaultCompanyInfo,
     ...data,
+    // ✅ Ensure package is always a clean number (guards against string input from form fields)
+    package: Number(data.package),
   };
 
   const Template =

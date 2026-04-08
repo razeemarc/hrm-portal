@@ -137,7 +137,6 @@ export interface OfferLetterData {
   acceptanceText?: string;
   closingText?: string;
   footerText?: string;
-  // Dynamic labels and title
   titleText?: string;
   positionLabel?: string;
   departmentLabel?: string;
@@ -213,9 +212,11 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
+            <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
             <Text style={styles.tableCell}>{role}</Text>
           </View>
           <View style={styles.tableRow}>
+            <Text style={styles.tableCell}>{departmentLabel || "Department"}</Text>
             <Text style={styles.tableCell}>{departmentLabel || "Department"}</Text>
             <Text style={styles.tableCell}>{department}</Text>
           </View>
@@ -225,15 +226,16 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableCell}>{startDateLabel || "Start Date"}</Text>
+            <Text style={styles.tableCell}>{startDateLabel || "Start Date"}</Text>
             <Text style={styles.tableCell}>
               {startDate ? new Date(startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "-"}
             </Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>{packageLabel || (packageType === "lpa" ? "Annual CTC" : "Monthly Stipend")}</Text>
+            <Text style={styles.tableCell}>{packageLabel || (packageType === "stipend" ? "Monthly Stipend" : "Annual CTC")}</Text>
             <Text style={styles.tableCell}>
               {packageType === "lpa"
-                ? `Rs. ${Number(salary).toFixed(1)} LPA`
+                ? `Rs. ${salary.toFixed(1)} LPA`
                 : `Rs. ${salary.toLocaleString("en-IN")}/month`
               }
             </Text>
@@ -360,9 +362,11 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
+            <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
             <Text style={styles.tableCell}>{role}</Text>
           </View>
           <View style={styles.tableRow}>
+            <Text style={styles.tableCell}>{departmentLabel || "Department"}</Text>
             <Text style={styles.tableCell}>{departmentLabel || "Department"}</Text>
             <Text style={styles.tableCell}>{department}</Text>
           </View>
@@ -372,18 +376,19 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableCell}>{startDateLabel || "Start Date"}</Text>
+            <Text style={styles.tableCell}>{startDateLabel || "Start Date"}</Text>
             <Text style={styles.tableCell}>
               {startDate ? new Date(startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "-"}
             </Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>{packageLabel || "Monthly Stipend"}</Text>
+            <Text style={styles.tableCell}>{packageLabel || (packageType === "stipend" ? "Monthly Stipend" : "Annual CTC")}</Text>
             <Text style={styles.tableCell}>
               {packageType === "stipend"
                 ? `Rs. ${stipend.toLocaleString("en-IN")}/month`
                 : packageType === "lpa"
-                ? `Rs. ${Number(stipend).toFixed(1)} LPA`
-                : `Rs. ${stipend.toLocaleString("en-IN")}/month`
+                  ? `Rs. ${stipend.toFixed(1)} LPA`
+                  : `Rs. ${stipend.toLocaleString("en-IN")}/month`
               }
             </Text>
           </View>

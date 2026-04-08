@@ -75,6 +75,7 @@ export const createOffer = mutation({
     startDate: v.number(),
     expiryDate: v.number(),
     storageId: v.optional(v.string()), // storageId from upload
+    documentUrl: v.optional(v.string()), // optional for backwards compatibility
   },
   handler: async (ctx, args) => {
     const { storageId, ...rest } = args;
@@ -130,6 +131,24 @@ export const updateOfferStatus = mutation({
       });
     }
 
+    return id;
+  },
+});
+
+// Update offer details
+export const updateOffer = mutation({
+  args: {
+    id: v.id("offers"),
+    role: v.optional(v.string()),
+    department: v.optional(v.string()),
+    package: v.optional(v.number()),
+    packageType: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    expiryDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...updates } = args;
+    await ctx.db.patch(id, updates);
     return id;
   },
 });

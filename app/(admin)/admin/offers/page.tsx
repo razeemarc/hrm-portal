@@ -164,7 +164,7 @@ export default function OffersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>{offer.role}</TableCell>
-                      <TableCell>
+                      <TableCell className="tabular-nums lining-nums">
                         {offer.packageType === "lpa"
                           ? `₹${(offer.package / 100000).toFixed(1)} LPA`
                           : offer.packageType === "monthly"
