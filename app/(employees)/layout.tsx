@@ -10,11 +10,13 @@ import {
   Building2,
   Settings,
   LogOut,
-  Menu,
-  X,
   Clock
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+
+type RoleMetadata = {
+  role?: string;
+};
 
 export default function EmployeeLayout({
   children,
@@ -25,12 +27,16 @@ export default function EmployeeLayout({
   const app = useStackApp();
   const router = useRouter();
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const userWithRole = user as typeof user & {
+    clientMetadata?: RoleMetadata;
+    clientReadOnlyMetadata?: RoleMetadata;
+    serverMetadata?: RoleMetadata;
+  };
   const role =
-    user?.clientMetadata?.role ||
-    user?.clientReadOnlyMetadata?.role ||
-    (user && "serverMetadata" in user ? user.serverMetadata?.role : undefined);
+    userWithRole?.clientMetadata?.role ||
+    userWithRole?.clientReadOnlyMetadata?.role ||
+    userWithRole?.serverMetadata?.role;
 
   useEffect(() => {
     if (role && role !== "employee") {
@@ -56,20 +62,9 @@ export default function EmployeeLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
+      {/* Desktop sidebar */}
       <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
+        className="fixed inset-y-0 left-0 z-50 hidden w-64 bg-white border-r lg:block"
       >
         <div className="flex items-center justify-between h-16 px-4 border-b">
           <div className="flex items-center gap-2">
@@ -78,12 +73,6 @@ export default function EmployeeLayout({
             </div>
             <span className="text-xl font-bold tracking-tight">HRM Portal</span>
           </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
         <div className="flex flex-col h-[calc(100vh-64px)] justify-between p-4">
@@ -93,7 +82,6 @@ export default function EmployeeLayout({
                 key={item.name}
                 onClick={() => {
                   router.push(item.href);
-                  setSidebarOpen(false);
                 }}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
@@ -136,21 +124,44 @@ export default function EmployeeLayout({
         {/* Top header */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b lg:hidden">
           <div className="flex items-center justify-between h-16 px-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
             <span className="font-bold tracking-tight">HRM Portal</span>
-            <div className="w-8" />
+            <button
+              onClick={() => router.push(app.urls.signOut)}
+              className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
         </header>
 
-        <main className="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-6 pb-28 lg:p-10 max-w-7xl mx-auto w-full">
           {children}
         </main>
       </div>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+        <div className="flex gap-1 overflow-x-auto">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <button
+                key={item.name}
+                onClick={() => router.push(item.href)}
+                className={cn(
+                  "flex min-w-[4.75rem] flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-all",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span className="max-w-full truncate">{item.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

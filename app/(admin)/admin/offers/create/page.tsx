@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
@@ -30,7 +30,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Loader2, ArrowLeft, Upload, X, Edit3, FileText, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, Loader2, ArrowLeft, Upload, X, Edit3, FileText, CheckCircle2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -42,12 +42,15 @@ import { pdf, PDFViewer } from "@react-pdf/renderer";
 
 const offerSchema = z.object({
   candidateId: z.string().min(1, "Please select a candidate"),
+  candidateName: z.string(),
+  candidateEmail: z.string(),
   offerType: z.enum(["intern", "employee"]),
   role: z.string().min(1, "Role is required"),
   department: z.string().min(1, "Department is required"),
   package: z.number().min(0, "Package must be positive"),
   packageType: z.enum(["lpa", "monthly", "stipend"]),
   startDate: z.date({ message: "Start date is required" }),
+  letterDate: z.date({ message: "Letter date is required" }),
   expiryDate: z.date({ message: "Expiry date is required" }),
   companyName: z.string().min(1, "Company name is required"),
   companyAddress: z.string().min(1, "Company address is required"),
@@ -64,6 +67,16 @@ const offerSchema = z.object({
   departmentLabel: z.string(),
   startDateLabel: z.string(),
   packageLabel: z.string(),
+  dateLabel: z.string(),
+  toLabel: z.string(),
+  dearLabel: z.string(),
+  descriptionHeader: z.string(),
+  detailsHeader: z.string(),
+  benefitsTitle: z.string(),
+  acceptanceTitle: z.string(),
+  candidateSignatureLabel: z.string(),
+  authorizedSignatoryLabel: z.string(),
+  hrTitle: z.string(),
 });
 
 type OfferFormValues = z.infer<typeof offerSchema>;
@@ -78,12 +91,15 @@ export default function CreateOfferPage() {
   const candidatesData = useQuery(api.functions.candidates.getCandidates);
   const createOffer = useMutation(api.functions.offers.createOffer);
   const generateUploadUrl = useMutation(api.functions.documents.generateUploadUrl);
+  const getStorageUrl = useAction(api.functions.settings.getStorageUrl);
   const candidates = candidatesData ?? [];
 
   const form = useForm<OfferFormValues>({
     resolver: zodResolver(offerSchema),
     defaultValues: {
       candidateId: "",
+      candidateName: "Candidate Name",
+      candidateEmail: "candidate@email.com",
       offerType: "employee",
       role: "",
       department: "",
@@ -105,7 +121,18 @@ export default function CreateOfferPage() {
       closingText: "",
       footerText: "",
       startDate: new Date(),
+      letterDate: new Date(),
       expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      dateLabel: "Date:",
+      toLabel: "To,",
+      dearLabel: "Dear",
+      descriptionHeader: "Description",
+      detailsHeader: "Details",
+      benefitsTitle: "2. Benefits",
+      acceptanceTitle: "3. Acceptance",
+      candidateSignatureLabel: "Candidate Signature",
+      authorizedSignatoryLabel: "Authorized Signatory",
+      hrTitle: "HR Manager",
     },
   });
 
@@ -126,13 +153,22 @@ export default function CreateOfferPage() {
     return candidates.find((c) => c._id === selectedCandidateId);
   }, [candidates, selectedCandidateId]);
 
+  useEffect(() => {
+    if (!selectedCandidate) return;
+    form.setValue("candidateName", selectedCandidate.name);
+    form.setValue("candidateEmail", selectedCandidate.email);
+  }, [form, selectedCandidate]);
+
   const previewData = useMemo(() => {
+    const candidateName = form.watch("candidateName");
+    const candidateEmail = form.watch("candidateEmail");
     const offerType = form.watch("offerType");
     const role = form.watch("role");
     const department = form.watch("department");
     const packageValue = form.watch("package");
     const packageType = form.watch("packageType");
     const startDate = form.watch("startDate");
+    const letterDate = form.watch("letterDate");
     const companyName = form.watch("companyName");
     const companyAddress = form.watch("companyAddress");
     const hrName = form.watch("hrName");
@@ -147,16 +183,27 @@ export default function CreateOfferPage() {
     const departmentLabel = form.watch("departmentLabel");
     const startDateLabel = form.watch("startDateLabel");
     const packageLabel = form.watch("packageLabel");
+    const dateLabel = form.watch("dateLabel");
+    const toLabel = form.watch("toLabel");
+    const dearLabel = form.watch("dearLabel");
+    const descriptionHeader = form.watch("descriptionHeader");
+    const detailsHeader = form.watch("detailsHeader");
+    const benefitsTitle = form.watch("benefitsTitle");
+    const acceptanceTitle = form.watch("acceptanceTitle");
+    const candidateSignatureLabel = form.watch("candidateSignatureLabel");
+    const authorizedSignatoryLabel = form.watch("authorizedSignatoryLabel");
+    const hrTitle = form.watch("hrTitle");
 
     return {
-      candidateName: selectedCandidate?.name ?? "Candidate Name",
-      candidateEmail: selectedCandidate?.email ?? "candidate@email.com",
+      candidateName: candidateName || selectedCandidate?.name || "Candidate Name",
+      candidateEmail: candidateEmail || selectedCandidate?.email || "candidate@email.com",
       offerType,
       role: role || "Role",
       department: department || "Department",
       package: packageValue || 0,
       packageType: packageType || "lpa",
       startDate: startDate?.getTime() ?? Date.now(),
+      letterDate: letterDate?.getTime() ?? Date.now(),
       companyName: companyName || "Ladder Academy",
       companyAddress: companyAddress || "Address",
       hrName: hrName || "HR Manager",
@@ -172,10 +219,20 @@ export default function CreateOfferPage() {
       departmentLabel: form.watch("departmentLabel") || "Department",
       startDateLabel: form.watch("startDateLabel") || "Start Date",
       packageLabel: form.watch("packageLabel") || (offerType === "intern" ? "Monthly Stipend" : "Annual CTC"),
+      dateLabel: dateLabel || "Date:",
+      toLabel: toLabel || "To,",
+      dearLabel: dearLabel || "Dear",
+      descriptionHeader: descriptionHeader || "Description",
+      detailsHeader: detailsHeader || "Details",
+      benefitsTitle: benefitsTitle || "2. Benefits",
+      acceptanceTitle: acceptanceTitle || "3. Acceptance",
+      candidateSignatureLabel: candidateSignatureLabel || "Candidate Signature",
+      authorizedSignatoryLabel: authorizedSignatoryLabel || "Authorized Signatory",
+      hrTitle: hrTitle || "HR Manager",
     };
-  }, [selectedCandidate, form.watch("offerType"), form.watch("role"), form.watch("department"), form.watch("package"), form.watch("packageType"), form.watch("startDate"), form.watch("companyName"), form.watch("companyAddress"), form.watch("hrName"), form.watch("hrSignature"), form.watch("companyLogo"), form.watch("introductionText"), form.watch("benefitsText"), form.watch("acceptanceText"), form.watch("closingText"), form.watch("footerText"), form.watch("titleText"), form.watch("positionLabel"), form.watch("departmentLabel"), form.watch("startDateLabel"), form.watch("packageLabel")]);
+  }, [selectedCandidate, form.watch("candidateName"), form.watch("candidateEmail"), form.watch("offerType"), form.watch("role"), form.watch("department"), form.watch("package"), form.watch("packageType"), form.watch("startDate"), form.watch("letterDate"), form.watch("companyName"), form.watch("companyAddress"), form.watch("hrName"), form.watch("hrSignature"), form.watch("companyLogo"), form.watch("introductionText"), form.watch("benefitsText"), form.watch("acceptanceText"), form.watch("closingText"), form.watch("footerText"), form.watch("titleText"), form.watch("positionLabel"), form.watch("departmentLabel"), form.watch("startDateLabel"), form.watch("packageLabel"), form.watch("dateLabel"), form.watch("toLabel"), form.watch("dearLabel"), form.watch("descriptionHeader"), form.watch("detailsHeader"), form.watch("benefitsTitle"), form.watch("acceptanceTitle"), form.watch("candidateSignatureLabel"), form.watch("authorizedSignatoryLabel"), form.watch("hrTitle")]);
 
-  const onSubmit = async (data: OfferFormValues) => {
+  const onSubmit = async (data: OfferFormValues, shareWithResend = false) => {
     try {
       // 1. Generate PDF Blob
       const blob = await pdf(
@@ -196,9 +253,10 @@ export default function CreateOfferPage() {
 
       if (!uploadResult.ok) throw new Error("PDF upload failed");
       const { storageId } = await uploadResult.json();
+      const documentUrl = await getStorageUrl({ storageId });
 
       // 3. Create Offer record with document URL
-      await createOffer({
+      const offerId = await createOffer({
         candidateId: data.candidateId as Id<"candidates">,
         offerType: data.offerType,
         role: data.role,
@@ -207,11 +265,32 @@ export default function CreateOfferPage() {
         packageType: data.packageType,
         startDate: data.startDate.getTime(),
         expiryDate: data.expiryDate.getTime(),
-        storageId: storageId,
+        documentUrl: documentUrl ?? undefined,
       });
 
+      if (shareWithResend) {
+        const response = await fetch("/api/send-offer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: previewData.candidateEmail,
+            candidateName: previewData.candidateName,
+            companyName: previewData.companyName,
+            role: previewData.role,
+            offerUrl: `${window.location.origin}/offer/${offerId}`,
+            documentUrl: documentUrl ?? undefined,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || "Offer created, but Resend sharing failed");
+        }
+      }
+
       router.push("/admin/offers");
-      toast.success("Offer created and saved as PDF");
+      toast.success(shareWithResend ? "Offer created and shared through Resend" : "Offer created and saved as PDF");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error("Failed to create offer", { description: msg });
@@ -222,10 +301,9 @@ export default function CreateOfferPage() {
   const hrSignature = form.watch("hrSignature");
   const companyLogo = form.watch("companyLogo");
 
-  const renderEditField = (fieldName: keyof OfferFormValues, placeholder: string, isTextarea = false, className = "") => {
-    const isEditing = editingField === fieldName;
-    const value = form.watch(fieldName as any);
-    const displayValue = value || placeholder;
+  const renderEditField = (fieldName: keyof OfferFormValues, placeholder: string, isTextarea = false, className = "", editKey: string = fieldName) => {
+    const isEditing = editingField === editKey;
+    const value = form.watch(fieldName);
 
     return (
       <span className={cn("relative inline-block min-w-[20px] group", className)}>
@@ -267,17 +345,48 @@ export default function CreateOfferPage() {
         ) : (
           <span
             className="cursor-text rounded px-1 -mx-1 py-0.5 transition-all duration-150 hover:outline hover:outline-2 hover:outline-[#7c3aed]/50 hover:bg-[#7c3aed]/[0.04] group"
-            onClick={() => setEditingField(fieldName)}
+            onClick={() => setEditingField(editKey)}
           >
-            {form.watch(fieldName as any) || <span className="text-gray-400 italic">{placeholder}</span>}
+            {value ? String(value) : <span className="text-gray-400 italic">{placeholder}</span>}
           </span>
         )}
       </span>
     );
   };
 
-  // Add a helper for editing labels without necessarily being in form state, 
-  // or just use existing ones if we've added them to schema.
+  const renderDateEditField = (fieldName: "letterDate" | "startDate", className = "") => {
+    const isEditing = editingField === fieldName;
+    const value = form.watch(fieldName);
+
+    return (
+      <span className={cn("relative inline-block min-w-[20px] group", className)}>
+        {isEditing ? (
+          <Input
+            type="date"
+            value={value ? format(value, "yyyy-MM-dd") : ""}
+            className="text-sm h-8 min-w-[150px] border-2 border-[#7c3aed] bg-white shadow-[0_0_0_3px_rgba(124,58,237,0.15)] rounded-md focus:border-[#7c3aed] focus:ring-0 transition-all"
+            autoFocus
+            onBlur={() => setEditingField(null)}
+            onChange={(e) => {
+              const nextDate = e.target.value ? new Date(`${e.target.value}T00:00:00`) : new Date();
+              form.setValue(fieldName, nextDate);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); setEditingField(null); }
+              if (e.key === "Escape") setEditingField(null);
+            }}
+          />
+        ) : (
+          <span
+            className="cursor-text rounded px-1 -mx-1 py-0.5 transition-all duration-150 hover:outline hover:outline-2 hover:outline-[#7c3aed]/50 hover:bg-[#7c3aed]/[0.04] group"
+            onClick={() => setEditingField(fieldName)}
+          >
+            {value ? value.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "Pick date"}
+          </span>
+        )}
+      </span>
+    );
+  };
 
   const OfferLetterHTMLPreview = () => {
     const data = previewData;
@@ -317,28 +426,37 @@ export default function CreateOfferPage() {
           {/* Date */}
           <div className="flex justify-end mb-8 text-[13px]" style={{ color: "#475569" }}>
             <div className="flex items-center gap-2">
-              <span className="font-semibold" style={{ color: "#1e293b" }}>Date:</span>
-              <span>{new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
+              <span className="font-semibold" style={{ color: "#1e293b" }}>
+                {renderEditField("dateLabel", "Date:")}
+              </span>
+              <span>{renderDateEditField("letterDate")}</span>
             </div>
           </div>
 
           {/* Candidate Info */}
           <div className="mb-8">
-            <p className="font-semibold mb-1 text-[13px] uppercase tracking-wider" style={{ color: "#64748b" }}>To,</p>
+            <p className="font-semibold mb-1 text-[13px] uppercase tracking-wider" style={{ color: "#64748b" }}>
+              {renderEditField("toLabel", "To,")}
+            </p>
             <p className="text-[18px] font-bold" style={{ color: "#1e293b" }}>
-              {selectedCandidate?.name ?? "Candidate Name"}
+              {renderEditField("candidateName", "Candidate Name", false, "", "candidateNameAddress")}
             </p>
             <p className="text-[13px] italic" style={{ color: "#64748b" }}>
-              {selectedCandidate?.email ?? "candidate@email.com"}
+              {renderEditField("candidateEmail", "candidate@email.com", false, "", "candidateEmailAddress")}
             </p>
           </div>
 
-          {/* Title — NOT editable */}
+          {/* Title - Editable */}
           <div className="text-center mb-8 py-1">
-            <div className="inline-block relative px-10">
+            <div className="inline-block relative px-10 border border-transparent hover:border-gray-300 rounded transition-colors group">
               <div className="absolute inset-x-0 top-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent 10%, #1e293b 30%, #1e293b 70%, transparent 90%)" }} />
-              <h2 className="text-[20px] font-extrabold uppercase tracking-[0.25em] py-3 select-none" style={{ color: "#1e293b", fontFamily: "'Georgia', serif" }}>
-                {isIntern ? "Internship Offer Letter" : "Letter of Appointment"}
+              <h2 className="text-[20px] font-extrabold uppercase tracking-[0.25em] py-3" style={{ color: "#1e293b", fontFamily: "'Georgia', serif" }}>
+                {renderEditField(
+                  "titleText",
+                  isIntern ? "INTERNSHIP OFFER LETTER" : "LETTER OF APPOINTMENT",
+                  false,
+                  "text-center min-w-[300px]"
+                )}
               </h2>
               <div className="absolute inset-x-0 bottom-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent 10%, #1e293b 30%, #1e293b 70%, transparent 90%)" }} />
             </div>
@@ -346,7 +464,9 @@ export default function CreateOfferPage() {
 
           {/* Opening paragraph */}
           <div className="mb-6">
-            <p className="mb-4 text-[14px]" style={{ color: "#334155" }}>Dear <span className="font-bold" style={{ color: "#1e293b" }}>{data.candidateName}</span>,</p>
+            <p className="mb-4 text-[14px]" style={{ color: "#334155" }}>
+              {renderEditField("dearLabel", "Dear")} <span className="font-bold" style={{ color: "#1e293b" }}>{renderEditField("candidateName", "Candidate Name", false, "", "candidateNameGreeting")}</span>,
+            </p>
             <div className="text-justify leading-[1.8] text-[14px]" style={{ color: "#475569" }}>
               {renderEditField(
                 "introductionText",
@@ -362,8 +482,8 @@ export default function CreateOfferPage() {
           {/* Details Table */}
           <div className="mb-8 overflow-hidden rounded-lg border" style={{ borderColor: "#e2e8f0" }}>
             <div className="grid grid-cols-2 px-5 py-3 font-bold text-[13px] uppercase tracking-wider" style={{ background: "linear-gradient(135deg, #1e293b, #334155)", color: "#f8fafc" }}>
-              <div>Description</div>
-              <div>Details</div>
+              <div>{renderEditField("descriptionHeader", "Description")}</div>
+              <div>{renderEditField("detailsHeader", "Details")}</div>
             </div>
             <div className="grid grid-cols-2 px-5 py-3 border-b text-[13px]" style={{ borderColor: "#f1f5f9" }}>
               <div className="font-medium" style={{ color: "#64748b" }}>
@@ -386,23 +506,30 @@ export default function CreateOfferPage() {
                 {renderEditField("startDateLabel", "Start Date")}
               </div>
               <div className="font-bold" style={{ color: "#1e293b" }}>
-                {new Date(data.startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                {renderDateEditField("startDate")}
               </div>
             </div>
             <div className="grid grid-cols-2 px-5 py-4 text-[13px]" style={{ background: "linear-gradient(135deg, #ede9fe, #f5f3ff)" }}>
               <div className="font-semibold" style={{ color: "#5b21b6" }}>
                 {renderEditField("packageLabel", isIntern ? "Monthly Stipend" : "Annual CTC")}
               </div>
-              <div className="font-bold text-[15px]" style={{ color: "#5b21b6" }}>
+              <div
+                className="font-bold text-[15px] cursor-text rounded px-1 -mx-1 py-0.5 transition-all duration-150 hover:outline hover:outline-2 hover:outline-[#7c3aed]/50 hover:bg-white/60"
+                style={{ color: "#5b21b6" }}
+                onClick={() => setEditingField("package")}
+              >
                 {editingField === "package" ? (
                   <Input
                     type="number"
-                    defaultValue={form.getValues("package")}
-                    className="h-8 w-24 border-2 border-[#7c3aed]"
+                    value={form.watch("package")}
+                    className="h-8 w-28 border-2 border-[#7c3aed] bg-white shadow-[0_0_0_3px_rgba(124,58,237,0.15)]"
                     autoFocus
                     onBlur={() => setEditingField(null)}
                     onChange={(e) => form.setValue("package", Number(e.target.value))}
-                    onKeyDown={(e) => e.key === "Enter" && setEditingField(null)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); setEditingField(null); }
+                      if (e.key === "Escape") setEditingField(null);
+                    }}
                   />
                 ) : (
                   <span
@@ -423,7 +550,7 @@ export default function CreateOfferPage() {
           <div className="mb-8">
             <h3 className="font-bold text-[14px] mb-2 pl-4 relative" style={{ color: "#1e293b" }}>
               <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full" style={{ background: "linear-gradient(180deg, #7c3aed, #a78bfa)" }} />
-              2. Benefits
+              {renderEditField("benefitsTitle", "2. Benefits")}
             </h3>
             <div className="leading-[1.8] pl-4 text-[14px]" style={{ color: "#475569" }}>
               {renderEditField(
@@ -439,7 +566,7 @@ export default function CreateOfferPage() {
           <div className="mb-10">
             <h3 className="font-bold text-[14px] mb-2 pl-4 relative" style={{ color: "#1e293b" }}>
               <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full" style={{ background: "linear-gradient(180deg, #7c3aed, #a78bfa)" }} />
-              3. Acceptance
+              {renderEditField("acceptanceTitle", "3. Acceptance")}
             </h3>
             <div className="mb-6 pl-4 leading-[1.8] text-[14px]" style={{ color: "#475569" }}>
               {renderEditField(
@@ -458,8 +585,12 @@ export default function CreateOfferPage() {
           <div className="mt-auto pt-10 grid grid-cols-2 gap-20">
             <div className="text-center">
               <div className="h-10 mb-2" style={{ borderBottom: "1px solid #94a3b8" }} />
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "#64748b" }}>Candidate Signature</p>
-              <p className="text-[13px] mt-1 font-medium" style={{ color: "#334155" }}>{data.candidateName}</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "#64748b" }}>
+                {renderEditField("candidateSignatureLabel", "Candidate Signature")}
+              </p>
+              <p className="text-[13px] mt-1 font-medium" style={{ color: "#334155" }}>
+                {renderEditField("candidateName", "Candidate Name", false, "", "candidateNameSignature")}
+              </p>
             </div>
             <div className="text-center">
               <div className="h-10 mb-2 flex items-center justify-center">
@@ -469,11 +600,15 @@ export default function CreateOfferPage() {
                   <div className="w-full h-full" style={{ borderBottom: "1px solid #94a3b8" }} />
                 )}
               </div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "#64748b" }}>Authorized Signatory</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "#64748b" }}>
+                {renderEditField("authorizedSignatoryLabel", "Authorized Signatory")}
+              </p>
               <div className="text-[13px] font-bold mt-1" style={{ color: "#334155" }}>
                 {renderEditField("hrName", "HR Name")}
               </div>
-              <p className="text-[10px]" style={{ color: "#94a3b8" }}>HR Manager</p>
+              <p className="text-[10px]" style={{ color: "#94a3b8" }}>
+                {renderEditField("hrTitle", "HR Manager")}
+              </p>
             </div>
           </div>
 
@@ -562,7 +697,7 @@ export default function CreateOfferPage() {
         {/* Edit Panel - Takes 1 column */}
         <div className="bg-card rounded-lg border p-4 overflow-y-auto">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-4">
               {/* Candidate */}
               <FormField
                 control={form.control}
@@ -866,10 +1001,26 @@ export default function CreateOfferPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Create Offer
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Create Offer
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  disabled={form.formState.isSubmitting}
+                  onClick={form.handleSubmit((data) => onSubmit(data, true))}
+                >
+                  {form.formState.isSubmitting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Mail className="h-4 w-4 mr-2" />
+                  )}
+                  Create & Share via Resend
+                </Button>
+              </div>
             </form>
           </Form>
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
@@ -15,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Eye, Loader2, Mail, Phone, ExternalLink, FileText } from "lucide-react";
+import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -24,12 +26,55 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OffersPage() {
+  const [sharingOfferId, setSharingOfferId] = useState<string | null>(null);
   // ── Convex queries ──
   const offersData = useQuery(api.functions.offers.getOffers);
   const settings = useQuery(api.functions.settings.getSettings);
 
   const offers = offersData ?? [];
   const companyName = settings?.companyName || "Ladder Academy";
+
+  const shareOfferViaResend = async (offer: (typeof offers)[number]) => {
+    if (!offer.candidate?.email) {
+      toast.error("Candidate email is missing");
+      return;
+    }
+
+    try {
+      setSharingOfferId(offer._id);
+      const response = await fetch("/api/send-offer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: offer.candidate.email,
+          candidateName: offer.candidate.name,
+          companyName,
+          role: offer.role,
+          offerUrl: `${window.location.origin}/offer/${offer._id}`,
+          documentUrl: offer.documentUrl,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send offer email");
+      }
+
+      toast.success("Offer shared through Resend", {
+        description: `Sent to ${offer.candidate.email}`,
+        action: {
+          label: "View Resend",
+          onClick: () => window.open("https://resend.com/emails", "_blank", "noopener,noreferrer"),
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      toast.error("Failed to share offer", { description: message });
+    } finally {
+      setSharingOfferId(null);
+    }
+  };
 
   return (
     <div>
@@ -213,15 +258,25 @@ export default function OffersPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            title="Email Offer Link"
-                            onClick={() => {
-                              const subject = encodeURIComponent(`Offer Letter from ${companyName}`);
-                              const body = encodeURIComponent(`Hello ${offer.candidate?.name},\n\nWe are pleased to extend an offer from ${companyName} to you. You can view and respond to your offer letter at the following link:\n\n${window.location.origin}/offer/${offer._id}\n\nBest regards,\nHR Team`);
-                              window.location.href = `mailto:${offer.candidate?.email}?subject=${subject}&body=${body}`;
-                            }}
+                            title="Share through Resend"
+                            disabled={sharingOfferId === offer._id}
+                            onClick={() => shareOfferViaResend(offer)}
                           >
-                            <Mail className="h-4 w-4 text-blue-600" />
+                            {sharingOfferId === offer._id ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                            ) : (
+                              <Mail className="h-4 w-4 text-blue-600" />
+                            )}
                           </Button>
+                          <a
+                            href="https://resend.com/emails"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button variant="outline" size="sm" title="Open Resend Emails">
+                              <ExternalLink className="h-4 w-4 text-violet-600" />
+                            </Button>
+                          </a>
                         </div>
                       </TableCell>
                     </TableRow>
