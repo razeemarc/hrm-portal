@@ -74,20 +74,11 @@ export const createOffer = mutation({
     packageType: v.string(), // "lpa", "monthly", "stipend"
     startDate: v.number(),
     expiryDate: v.number(),
-    storageId: v.optional(v.string()), // storageId from upload
-    documentUrl: v.optional(v.string()), // optional for backwards compatibility
+    documentUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { storageId, ...rest } = args;
-    let documentUrl = undefined;
-
-    if (storageId) {
-      documentUrl = await ctx.storage.getUrl(storageId as any) || undefined;
-    }
-
     const offerId = await ctx.db.insert("offers", {
-      ...rest,
-      documentUrl,
+      ...args,
       status: "pending",
       createdAt: Date.now(),
     });

@@ -49,6 +49,28 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginBottom: 30,
   },
+  candidateAddress: {
+    marginBottom: 28,
+  },
+  candidateLabel: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  candidateName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1e293b",
+    marginBottom: 2,
+  },
+  candidateEmail: {
+    fontSize: 10,
+    color: "#64748b",
+    fontStyle: "italic",
+  },
   section: {
     marginBottom: 15,
   },
@@ -126,6 +148,7 @@ export interface OfferLetterData {
   package: number;
   packageType: "lpa" | "monthly" | "stipend";
   startDate: number;
+  letterDate?: number;
   companyName: string;
   companyAddress: string;
   hrName: string;
@@ -142,6 +165,16 @@ export interface OfferLetterData {
   departmentLabel?: string;
   startDateLabel?: string;
   packageLabel?: string;
+  dateLabel?: string;
+  toLabel?: string;
+  dearLabel?: string;
+  descriptionHeader?: string;
+  detailsHeader?: string;
+  benefitsTitle?: string;
+  acceptanceTitle?: string;
+  candidateSignatureLabel?: string;
+  authorizedSignatoryLabel?: string;
+  hrTitle?: string;
 }
 
 export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
@@ -152,6 +185,7 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
   package: salary,
   packageType,
   startDate,
+  letterDate,
   companyName,
   companyAddress,
   hrName,
@@ -167,6 +201,16 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
   departmentLabel,
   startDateLabel,
   packageLabel,
+  dateLabel,
+  toLabel,
+  dearLabel,
+  descriptionHeader,
+  detailsHeader,
+  benefitsTitle,
+  acceptanceTitle,
+  candidateSignatureLabel,
+  authorizedSignatoryLabel,
+  hrTitle,
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>
@@ -179,14 +223,14 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
 
       {/* Date */}
       <View style={styles.date}>
-        <Text>Date: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</Text>
+        <Text>{dateLabel || "Date:"} {new Date(letterDate || startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</Text>
       </View>
 
       {/* Candidate Address */}
-      <View style={{ marginBottom: 20 }}>
-        <Text>To,</Text>
-        <Text>{candidateName}</Text>
-        <Text>{candidateEmail}</Text>
+      <View style={styles.candidateAddress}>
+        <Text style={styles.candidateLabel}>{toLabel || "To,"}</Text>
+        <Text style={styles.candidateName}>{candidateName}</Text>
+        <Text style={styles.candidateEmail}>{candidateEmail}</Text>
       </View>
 
       {/* Title */}
@@ -195,7 +239,7 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
       {/* Body */}
       <View style={styles.section}>
         <Text style={styles.paragraph}>
-          Dear {candidateName},
+          {dearLabel || "Dear"} {candidateName},
         </Text>
         <Text style={styles.paragraph}>
           {introductionText || `We are pleased to offer you the position of ${role} at ${companyName}. We believe your skills and experience will be a valuable addition to our ${department} team.`}
@@ -207,8 +251,8 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
         <Text style={styles.sectionTitle}>1. Employment Details</Text>
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={styles.tableCell}>Description</Text>
-            <Text style={styles.tableCell}>Details</Text>
+            <Text style={styles.tableCell}>{descriptionHeader || "Description"}</Text>
+            <Text style={styles.tableCell}>{detailsHeader || "Details"}</Text>
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
@@ -244,7 +288,7 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>2. Benefits</Text>
+        <Text style={styles.sectionTitle}>{benefitsTitle || "2. Benefits"}</Text>
         <Text style={styles.paragraph}>
           {benefitsText || "As a full-time employee, you will be entitled to:"}
         </Text>
@@ -255,7 +299,7 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>3. Acceptance</Text>
+        <Text style={styles.sectionTitle}>{acceptanceTitle || "3. Acceptance"}</Text>
         <Text style={styles.paragraph}>
           {acceptanceText || "This offer is valid for 14 days from the date of this letter. Please sign and return a copy of this letter to indicate your acceptance of the terms and conditions outlined herein."}
         </Text>
@@ -271,7 +315,7 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
       <View style={styles.signature}>
         <View style={styles.signatureBlock}>
           <View style={styles.signatureLine} />
-          <Text style={styles.signatureLabel}>Candidate Signature</Text>
+          <Text style={styles.signatureLabel}>{candidateSignatureLabel || "Candidate Signature"}</Text>
           <Text style={{ fontSize: 10, marginTop: 5 }}>{candidateName}</Text>
         </View>
         <View style={styles.signatureBlock}>
@@ -280,9 +324,9 @@ export const EmployeeOfferTemplate: React.FC<OfferLetterData> = ({
           ) : (
             <View style={styles.signatureLine} />
           )}
-          <Text style={styles.signatureLabel}>Authorized Signatory</Text>
+          <Text style={styles.signatureLabel}>{authorizedSignatoryLabel || "Authorized Signatory"}</Text>
           <Text style={{ fontSize: 10, marginTop: 5 }}>{hrName}</Text>
-          <Text style={{ fontSize: 10, color: "#666" }}>HR Manager</Text>
+          <Text style={{ fontSize: 10, color: "#666" }}>{hrTitle || "HR Manager"}</Text>
         </View>
       </View>
 
@@ -302,6 +346,7 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
   package: stipend,
   packageType,
   startDate,
+  letterDate,
   companyName,
   companyAddress,
   hrName,
@@ -317,6 +362,16 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
   departmentLabel,
   startDateLabel,
   packageLabel,
+  dateLabel,
+  toLabel,
+  dearLabel,
+  descriptionHeader,
+  detailsHeader,
+  benefitsTitle,
+  acceptanceTitle,
+  candidateSignatureLabel,
+  authorizedSignatoryLabel,
+  hrTitle,
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>
@@ -329,14 +384,14 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
 
       {/* Date */}
       <View style={styles.date}>
-        <Text>Date: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</Text>
+        <Text>{dateLabel || "Date:"} {new Date(letterDate || startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</Text>
       </View>
 
       {/* Candidate Address */}
-      <View style={{ marginBottom: 20 }}>
-        <Text>To,</Text>
-        <Text>{candidateName}</Text>
-        <Text>{candidateEmail}</Text>
+      <View style={styles.candidateAddress}>
+        <Text style={styles.candidateLabel}>{toLabel || "To,"}</Text>
+        <Text style={styles.candidateName}>{candidateName}</Text>
+        <Text style={styles.candidateEmail}>{candidateEmail}</Text>
       </View>
 
       {/* Title */}
@@ -345,7 +400,7 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
       {/* Body */}
       <View style={styles.section}>
         <Text style={styles.paragraph}>
-          Dear {candidateName},
+          {dearLabel || "Dear"} {candidateName},
         </Text>
         <Text style={styles.paragraph}>
           {introductionText || `We are pleased to offer you an internship position as ${role} at ${companyName}. We believe this internship will provide you with valuable industry experience and help you develop your professional skills.`}
@@ -357,8 +412,8 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
         <Text style={styles.sectionTitle}>1. Internship Details</Text>
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={styles.tableCell}>Description</Text>
-            <Text style={styles.tableCell}>Details</Text>
+            <Text style={styles.tableCell}>{descriptionHeader || "Description"}</Text>
+            <Text style={styles.tableCell}>{detailsHeader || "Details"}</Text>
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableCell}>{positionLabel || "Position"}</Text>
@@ -400,7 +455,7 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>2. Benefits</Text>
+        <Text style={styles.sectionTitle}>{benefitsTitle || "2. Benefits"}</Text>
         <Text style={styles.paragraph}>
           {benefitsText || "As an intern, you will receive:"}
         </Text>
@@ -418,7 +473,7 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>4. Acceptance</Text>
+        <Text style={styles.sectionTitle}>{acceptanceTitle || "4. Acceptance"}</Text>
         <Text style={styles.paragraph}>
           Please sign and return a copy of this letter within 7 days to confirm your acceptance of this internship offer.
         </Text>
@@ -434,7 +489,7 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
       <View style={styles.signature}>
         <View style={styles.signatureBlock}>
           <View style={styles.signatureLine} />
-          <Text style={styles.signatureLabel}>Intern Signature</Text>
+          <Text style={styles.signatureLabel}>{candidateSignatureLabel || "Intern Signature"}</Text>
           <Text style={{ fontSize: 10, marginTop: 5 }}>{candidateName}</Text>
         </View>
         <View style={styles.signatureBlock}>
@@ -443,9 +498,9 @@ export const InternOfferTemplate: React.FC<OfferLetterData> = ({
           ) : (
             <View style={styles.signatureLine} />
           )}
-          <Text style={styles.signatureLabel}>Authorized Signatory</Text>
+          <Text style={styles.signatureLabel}>{authorizedSignatoryLabel || "Authorized Signatory"}</Text>
           <Text style={{ fontSize: 10, marginTop: 5 }}>{hrName}</Text>
-          <Text style={{ fontSize: 10, color: "#666" }}>HR Manager</Text>
+          <Text style={{ fontSize: 10, color: "#666" }}>{hrTitle || "HR Manager"}</Text>
         </View>
       </View>
 

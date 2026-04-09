@@ -13,10 +13,7 @@ import {
   Building2,
   Settings,
   LogOut,
-  Menu,
-  X,
 } from "lucide-react";
-import { useState } from "react";
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -27,6 +24,10 @@ const navigation = [
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
+type RoleMetadata = {
+  role?: string;
+};
+
 export default function DashboardLayout({
   children,
 }: {
@@ -36,15 +37,17 @@ export default function DashboardLayout({
   const app = useStackApp();
   const pathname = usePathname();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (!user) {
     return null;
   }
 
   // Security check: If employee tries to access /admin, redirect them back to their dashboard
-  // @ts-ignore
-  const role = user.metadata?.role || user.clientReadOnlyMetadata?.role;
+  const userWithRole = user as typeof user & {
+    metadata?: RoleMetadata;
+    clientReadOnlyMetadata?: RoleMetadata;
+  };
+  const role = userWithRole.metadata?.role || userWithRole.clientReadOnlyMetadata?.role;
   console.log("AdminLayout: User role", role);
   
   if (role === "employee") {
@@ -55,31 +58,14 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
+      {/* Desktop sidebar */}
       <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
+        className="fixed inset-y-0 left-0 z-50 hidden w-64 bg-white border-r lg:block"
       >
         <div className="flex items-center justify-between h-16 px-4 border-b">
           <Link href="/admin/dashboard" className="text-xl font-bold">
             HRM Portal
           </Link>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2"
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
         <nav className="p-4 space-y-1">
           {navigation.map((item) => {
@@ -94,7 +80,6 @@ export default function DashboardLayout({
                     ? "bg-gray-100 text-gray-900"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 )}
-                onClick={() => setSidebarOpen(false)}
               >
                 <item.icon className="h-5 w-5" />
                 {item.name}
@@ -129,19 +114,44 @@ export default function DashboardLayout({
         {/* Top header */}
         <header className="sticky top-0 z-30 bg-white border-b lg:hidden">
           <div className="flex items-center justify-between h-16 px-4">
+            <Link href="/admin/dashboard" className="font-semibold">
+              HRM Portal
+            </Link>
             <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2"
+              onClick={() => router.push(app.urls.signOut)}
+              className="rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+              aria-label="Sign out"
             >
-              <Menu className="h-5 w-5" />
+              <LogOut className="h-5 w-5" />
             </button>
-            <span className="font-semibold">HRM Portal</span>
-            <div className="w-8" />
           </div>
         </header>
 
-        <main className="p-4 lg:p-8">{children}</main>
+        <main className="p-4 pb-28 lg:p-8">{children}</main>
       </div>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+        <div className="flex gap-1 overflow-x-auto">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "flex min-w-[4.75rem] flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-colors",
+                  isActive
+                    ? "bg-gray-900 text-white"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span className="max-w-full truncate">{item.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
