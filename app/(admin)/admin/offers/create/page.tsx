@@ -81,6 +81,20 @@ const offerSchema = z.object({
 
 type OfferFormValues = z.infer<typeof offerSchema>;
 
+const blobToBase64 = async (blob: Blob) => {
+  const arrayBuffer = await blob.arrayBuffer();
+  let binary = "";
+  const bytes = new Uint8Array(arrayBuffer);
+  const chunkSize = 0x8000;
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
+};
+
 export default function CreateOfferPage() {
   const router = useRouter();
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -269,6 +283,11 @@ export default function CreateOfferPage() {
       });
 
       if (shareWithResend) {
+        const pdfBase64 = await blobToBase64(blob);
+        const safeCandidateName = (previewData.candidateName || "candidate")
+          .replace(/[^a-z0-9]+/gi, "-")
+          .replace(/^-+|-+$/g, "")
+          .toLowerCase();
         const response = await fetch("/api/send-offer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -279,6 +298,8 @@ export default function CreateOfferPage() {
             role: previewData.role,
             offerUrl: `${window.location.origin}/offer/${offerId}`,
             documentUrl: documentUrl ?? undefined,
+            pdfBase64,
+            pdfFilename: `${safeCandidateName || "offer-letter"}.pdf`,
           }),
         });
 
@@ -1004,7 +1025,7 @@ export default function CreateOfferPage() {
               <div className="grid grid-cols-2 gap-2">
                 <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Create Offer
+                  Create
                 </Button>
                 <Button
                   type="button"
@@ -1018,7 +1039,7 @@ export default function CreateOfferPage() {
                   ) : (
                     <Mail className="h-4 w-4 mr-2" />
                   )}
-                  Create & Share via Resend
+                  Share
                 </Button>
               </div>
             </form>
