@@ -8,6 +8,8 @@ type SendOfferRequest = {
   role?: string;
   offerUrl?: string;
   documentUrl?: string;
+  pdfBase64?: string;
+  pdfFilename?: string;
 };
 
 const escapeHtml = (value: string) =>
@@ -27,11 +29,13 @@ export async function POST(req: NextRequest) {
       role,
       offerUrl,
       documentUrl,
+      pdfBase64,
+      pdfFilename = "offer-letter.pdf",
     } = (await req.json()) as SendOfferRequest;
 
-    if (!email || !offerUrl) {
+    if (!email) {
       return NextResponse.json(
-        { error: "Missing required fields: email and offerUrl" },
+        { error: "Missing required field: email" },
         { status: 400 }
       );
     }
@@ -49,8 +53,18 @@ export async function POST(req: NextRequest) {
     const safeCandidateName = escapeHtml(candidateName);
     const safeCompanyName = escapeHtml(companyName);
     const safeRole = role ? escapeHtml(role) : "";
-    const safeOfferUrl = escapeHtml(offerUrl);
+    const safeOfferUrl = offerUrl ? escapeHtml(offerUrl) : "";
     const safeDocumentUrl = documentUrl ? escapeHtml(documentUrl) : "";
+    const safePdfFilename = escapeHtml(pdfFilename);
+    const attachments = pdfBase64
+      ? [
+          {
+            filename: pdfFilename,
+            content: Buffer.from(pdfBase64, "base64"),
+            content_type: "application/pdf",
+          },
+        ]
+      : undefined;
 
     const { data, error } = await resend.emails.send({
       from: fromEmail,
@@ -81,31 +95,40 @@ export async function POST(req: NextRequest) {
                           We are pleased to share your offer letter${safeRole ? ` for the <strong style="color:#1e293b;">${safeRole}</strong> role` : ""}.
                         </p>
                         <p style="color:#475569;font-size:16px;line-height:1.7;margin:0 0 24px;">
-                          Please review the offer details and respond using the secure link below.
+                          Your offer letter is attached to this email as a PDF${offerUrl ? ", and you can also review it online using the secure link below." : "."}
                         </p>
-                        <table cellpadding="0" cellspacing="0" style="margin:32px 0;">
-                          <tr>
-                            <td style="border-radius:8px;background:linear-gradient(135deg,#1e293b,#7c3aed);">
-                              <a href="${safeOfferUrl}"
-                                 style="display:inline-block;padding:16px 40px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;border-radius:8px;">
-                                View Offer Letter
-                              </a>
-                            </td>
-                          </tr>
-                        </table>
+                        ${offerUrl ? `
+                          <table cellpadding="0" cellspacing="0" style="margin:32px 0;">
+                            <tr>
+                              <td style="border-radius:8px;background:linear-gradient(135deg,#1e293b,#7c3aed);">
+                                <a href="${safeOfferUrl}"
+                                   style="display:inline-block;padding:16px 40px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;border-radius:8px;">
+                                  View Offer Letter
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+                        ` : ""}
+                        ${pdfBase64 ? `
+                          <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 16px;">
+                            Attached file: <strong>${safePdfFilename}</strong>
+                          </p>
+                        ` : ""}
                         ${safeDocumentUrl ? `
                           <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0 0 16px;">
                             You can also download the generated PDF here:
                             <a href="${safeDocumentUrl}" style="color:#7c3aed;text-decoration:none;">Download PDF</a>
                           </p>
                         ` : ""}
-                        <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0;" />
-                        <p style="color:#94a3b8;font-size:13px;margin:0 0 8px;">
-                          Or copy and paste this link into your browser:
-                        </p>
-                        <div style="background:#f1f5f9;border-radius:6px;padding:14px 16px;word-break:break-all;">
-                          <a href="${safeOfferUrl}" style="color:#7c3aed;font-size:13px;text-decoration:none;">${safeOfferUrl}</a>
-                        </div>
+                        ${offerUrl ? `
+                          <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0;" />
+                          <p style="color:#94a3b8;font-size:13px;margin:0 0 8px;">
+                            Or copy and paste this link into your browser:
+                          </p>
+                          <div style="background:#f1f5f9;border-radius:6px;padding:14px 16px;word-break:break-all;">
+                            <a href="${safeOfferUrl}" style="color:#7c3aed;font-size:13px;text-decoration:none;">${safeOfferUrl}</a>
+                          </div>
+                        ` : ""}
                       </td>
                     </tr>
                     <tr>
@@ -122,6 +145,7 @@ export async function POST(req: NextRequest) {
           </body>
         </html>
       `,
+      attachments,
     });
 
     if (error) {
