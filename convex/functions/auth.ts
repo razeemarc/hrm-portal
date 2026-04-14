@@ -136,7 +136,7 @@ export const createEmployeeUser = mutation({
       await ctx.db.patch(existing._id, {
         ...args,
         email: normalizedEmail,
-        role: "employee",
+        role: "admin",
       });
       return existing._id;
     }
@@ -144,7 +144,7 @@ export const createEmployeeUser = mutation({
     const userId = await ctx.db.insert("users", {
       ...args,
       email: normalizedEmail,
-      role: "employee",
+      role: "admin",
       createdAt: Date.now(),
     });
 
