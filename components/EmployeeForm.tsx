@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 const employeeSchema = z.object({
   // Personal Info
@@ -100,7 +101,7 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
           email: values.email,
           password: values.password,
           name: values.name,
-          role: "employee",
+          role: "admin",
         }),
       });
 
@@ -260,22 +261,21 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
                 <FormItem className="space-y-1">
                   <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Date of Birth</FormLabel>
                   <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal h-11 bg-muted/30",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
+                    <PopoverTrigger
+                      className={cn(
+                        buttonVariants({ variant: "outline" }),
+                        "w-full justify-start pl-3 text-left font-normal h-11 bg-muted/30",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      <span className="flex min-w-0 flex-1 items-center">
                         {field.value ? (
                           format(new Date(field.value), "PPP")
                         ) : (
                           <span>Pick a date</span>
                         )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
+                      </span>
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
@@ -469,22 +469,21 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
               <FormItem className="space-y-1">
                 <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Joining Date</FormLabel>
                 <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal h-11 bg-muted/30",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
+                  <PopoverTrigger
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "w-full justify-start pl-3 text-left font-normal h-11 bg-muted/30",
+                      !field.value && "text-muted-foreground"
+                    )}
+                  >
+                    <span className="flex min-w-0 flex-1 items-center">
                       {field.value ? (
                         format(new Date(field.value), "PPP")
                       ) : (
                         <span>Pick a date</span>
                       )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
+                    </span>
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar

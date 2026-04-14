@@ -62,20 +62,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       userId: user.id,
-      message: "User created in Stack Auth successfully as an admin"
+      message: "User created in Stack Auth successfully as an admin",
     });
-
   } catch (error: unknown) {
-    console.error("Stack Auth user creation error:", error);
+    console.error("Stack Auth admin creation error:", error);
     const message =
-      error instanceof Error ? error.message : "Failed to create user in Stack Auth";
+      error instanceof Error ? error.message : "Failed to create admin user in Stack Auth";
 
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
