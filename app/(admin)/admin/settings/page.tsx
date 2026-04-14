@@ -15,19 +15,22 @@ import Image from "next/image";
 
 export default function SettingsPage() {
   const user = useUser();
-  const dbUser = useQuery(api.functions.auth.getCurrentUser);
+  const dbUser = useQuery(
+    api.functions.auth.getUserByEmail,
+    user?.primaryEmail ? { email: user.primaryEmail } : "skip"
+  );
   const syncUser = useMutation(api.functions.auth.syncUser);
   const settings = useQuery(api.functions.settings.getSettings);
   const updateSettings = useMutation(api.functions.settings.updateSettings);
   const generateUploadUrl = useMutation(api.functions.settings.generateUploadUrl);
   const getStorageUrl = useAction(api.functions.settings.getStorageUrl);
-  
+
   const [userName, setUserName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [companyAddress, setCompanyAddress] = useState("");
   const [hrEmail, setHrEmail] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  
+
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,10 +68,14 @@ export default function SettingsPage() {
       }
 
       // 2. Update/Sync Convex
-      await syncUser({
+      const syncedUserId = await syncUser({
         name: userName,
         email: user.primaryEmail || "",
       });
+
+      if (!syncedUserId) {
+        throw new Error("Authentication is still syncing. Please try again.");
+      }
 
       toast.success("Profile updated in both systems");
     } catch (error) {
@@ -110,19 +117,19 @@ export default function SettingsPage() {
     try {
       // Step 1: Get upload URL
       const postUrl = await generateUploadUrl();
-      
+
       // Step 2: Upload the file
       const result = await fetch(postUrl, {
         method: "POST",
         headers: { "Content-Type": file.type },
         body: file,
       });
-      
+
       const { storageId } = await result.json();
-      
+
       // Step 3: Get URL for the storage ID
       const url = await getStorageUrl({ storageId });
-      
+
       setLogoUrl(url);
       toast.success("Logo uploaded successfully");
     } catch (error) {
@@ -154,15 +161,15 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <div className="space-y-1">
-                  <Input 
-                    id="name" 
-                    value={userName} 
+                  <Input
+                    id="name"
+                    value={userName}
                     onChange={(e) => setUserName(e.target.value)}
                     placeholder={user?.displayName || "Enter your full name"}
                   />
                   <div className="flex justify-between items-center px-1">
                     <p className="text-[10px] text-muted-foreground italic">
-                      Currently stored in Stack: <span className="font-medium text-foreground">{user?.displayName || "—"}</span>
+                      Currently stored in Stack: <span className="font-medium text-foreground">{user?.displayName || "â€”"}</span>
                     </p>
                     {userName !== user?.displayName && userName && (
                       <span className="text-[9px] bg-yellow-100 text-yellow-700 px-1.5 rounded-full font-medium">Pending Sync</span>
@@ -174,10 +181,10 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <div className="space-y-1">
-                  <Input 
-                    id="email" 
-                    value={user?.primaryEmail || dbUser?.email || ""} 
-                    disabled 
+                  <Input
+                    id="email"
+                    value={user?.primaryEmail || dbUser?.email || ""}
+                    disabled
                     className="bg-muted/50 cursor-not-allowed border-dashed"
                   />
                   <p className="text-[10px] text-muted-foreground px-1">
@@ -214,13 +221,13 @@ export default function SettingsPage() {
                 <div className="relative h-24 w-24 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden group">
                   {logoUrl ? (
                     <>
-                      <Image 
-                        src={logoUrl} 
-                        alt="Company Logo" 
-                        fill 
+                      <Image
+                        src={logoUrl}
+                        alt="Company Logo"
+                        fill
                         className="object-contain"
                       />
-                      <button 
+                      <button
                         onClick={removeLogo}
                         className="absolute top-1 right-1 bg-white/80 hover:bg-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                       >
@@ -234,21 +241,21 @@ export default function SettingsPage() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex-1 space-y-2">
                   <p className="text-sm text-gray-500">
                     This logo will appear at the top of generated offer letters.
                   </p>
-                  <input 
-                    type="file" 
+                  <input
+                    type="file"
                     ref={fileInputRef}
                     onChange={onLogoUpload}
                     accept="image/*"
-                    className="hidden" 
+                    className="hidden"
                   />
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     disabled={uploading}
                     onClick={() => fileInputRef.current?.click()}
                   >
@@ -273,24 +280,24 @@ export default function SettingsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="companyName">Company Name</Label>
-              <Input 
-                id="companyName" 
-                value={companyName} 
+              <Input
+                id="companyName"
+                value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="companyAddress">Company Address</Label>
-              <Input 
-                id="companyAddress" 
+              <Input
+                id="companyAddress"
                 value={companyAddress}
                 onChange={(e) => setCompanyAddress(e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="hrEmail">HR Contact Email</Label>
-              <Input 
-                id="hrEmail" 
+              <Input
+                id="hrEmail"
                 value={hrEmail}
                 onChange={(e) => setHrEmail(e.target.value)}
               />
@@ -352,4 +359,4 @@ export default function SettingsPage() {
       </div>
     </div>
   );
-}
+}

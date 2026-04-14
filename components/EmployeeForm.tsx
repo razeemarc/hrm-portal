@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
-import { Loader2, User, Mail, Briefcase, Building2, Calendar as CalendarIcon, DollarSign, ChevronRight, Plus, X, Save, Lock, Eye, EyeOff } from "lucide-react";
+import { Loader2, User, Mail, Briefcase, Building2, Calendar as CalendarIcon, DollarSign, X, Save, Lock, Eye, EyeOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -109,7 +109,7 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
         throw new Error(errorData.error || "Failed to create user in Stack Auth");
       }
 
-      const { userId } = await stackAuthRes.json();
+      await stackAuthRes.json();
 
       // 2. Store details in Convex User table
       await createEmployeeUser({
@@ -155,9 +155,9 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
 
       toast.success("Employee created and profile synced successfully");
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error.message || "Failed to create employee");
+      toast.error(error instanceof Error ? error.message : "Failed to create employee");
     }
   }
 
@@ -261,22 +261,21 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
                   <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Date of Birth</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal h-11 bg-muted/30",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(new Date(field.value), "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
+                      <Button
+                        type="button"
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal h-11 bg-muted/30",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(new Date(field.value), "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
@@ -471,22 +470,21 @@ export function EmployeeForm({ onSuccess, onCancel }: EmployeeFormProps) {
                 <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Joining Date</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal h-11 bg-muted/30",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
+                    <Button
+                      type="button"
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal h-11 bg-muted/30",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(new Date(field.value), "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
