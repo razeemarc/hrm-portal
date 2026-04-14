@@ -5,19 +5,6 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-function getRoleFromIdentity(identity: { role?: string | null; client_metadata?: { role?: string | null } | null; clientMetadata?: { role?: string | null } | null; client_read_only_metadata?: { role?: string | null } | null; clientReadOnlyMetadata?: { role?: string | null } | null; server_metadata?: { role?: string | null } | null; serverMetadata?: { role?: string | null } | null; }) {
-  return (
-    identity.role ||
-    identity.clientMetadata?.role ||
-    identity.client_metadata?.role ||
-    identity.clientReadOnlyMetadata?.role ||
-    identity.client_read_only_metadata?.role ||
-    identity.serverMetadata?.role ||
-    identity.server_metadata?.role ||
-    undefined
-  );
-}
-
 // Get current authenticated user
 export const getCurrentUser = query({
   args: {},
@@ -33,6 +20,19 @@ export const getCurrentUser = query({
       .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .first();
     return user;
+  },
+});
+
+// Get user by email for Stack-authenticated client flows
+export const getUserByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const normalizedEmail = normalizeEmail(args.email);
+
+    return await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .first();
   },
 });
 
@@ -159,12 +159,12 @@ export const syncUser = mutation({
     email: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    if (!identity.email) throw new Error("Authenticated user has no email");
+    if (!args.email) {
+      return null;
+    }
 
-    const normalizedEmail = normalizeEmail(args.email || identity.email);
-    const role = getRoleFromIdentity(identity) ?? "admin";
+    const normalizedEmail = normalizeEmail(args.email);
+    const role = "admin";
 
     const existing = await ctx.db
       .query("users")

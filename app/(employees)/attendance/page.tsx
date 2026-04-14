@@ -40,7 +40,10 @@ import Link from "next/link";
 
 export default function AttendancePage() {
   const user = useUser({ or: 'redirect' });
-  const convexUser = useQuery(api.functions.auth.getCurrentUser);
+  const convexUser = useQuery(
+    api.functions.auth.getUserByEmail,
+    user?.primaryEmail ? { email: user.primaryEmail } : "skip"
+  );
   const syncUser = useMutation(api.functions.auth.syncUser);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isRepairingProfile, setIsRepairingProfile] = useState(false);
@@ -78,10 +81,13 @@ export default function AttendancePage() {
     const repairProfile = async () => {
       try {
         setIsRepairingProfile(true);
-        await syncUser({
+        const syncedUserId = await syncUser({
           name: user.displayName || "Employee",
           email: user.primaryEmail || "",
         });
+        if (!syncedUserId) {
+          return;
+        }
       } catch (error) {
         console.error("AttendancePage: Failed to sync employee profile", error);
       } finally {
