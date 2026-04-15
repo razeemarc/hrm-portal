@@ -152,6 +152,43 @@ export const createEmployeeUser = mutation({
   },
 });
 
+export const createManagementUser = mutation({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    role: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const normalizedEmail = normalizeEmail(args.email);
+    const normalizedRole = args.role.trim().toLowerCase();
+
+    if (!["hr", "accountant"].includes(normalizedRole)) {
+      throw new Error("Role must be either hr or accountant");
+    }
+
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        email: normalizedEmail,
+        name: args.name.trim(),
+        role: normalizedRole,
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("users", {
+      email: normalizedEmail,
+      name: args.name.trim(),
+      role: normalizedRole,
+      createdAt: Date.now(),
+    });
+  },
+});
+
 // Sync user from Stack Auth identity
 export const syncUser = mutation({
   args: {
