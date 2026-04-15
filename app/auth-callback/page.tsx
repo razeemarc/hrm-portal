@@ -17,16 +17,12 @@ export default function AuthCallback() {
           ("serverMetadata" in user ? user.serverMetadata?.role : undefined);
         console.log("AuthCallback: Role detected", role);
         
-        if (role === "employee") {
-          console.log("AuthCallback: Redirecting to /dashboard");
-          window.location.href = "/dashboard";
-        } else if (role === "admin" || role === "hr") {
+        if (role === "admin") {
           console.log("AuthCallback: Redirecting to /admin/dashboard");
           window.location.href = "/admin/dashboard";
         } else {
-          // If no role is assigned yet, default to dashboard or show error
-          console.warn("User has no role assigned in metadata:", user.id);
-          window.location.href = "/dashboard"; 
+          console.log("AuthCallback: Redirecting to /dashboard");
+          window.location.href = "/dashboard";
         }
       } catch (err) {
         console.error("Redirection error:", err);

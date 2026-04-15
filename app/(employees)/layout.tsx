@@ -10,7 +10,8 @@ import {
   Building2,
   Settings,
   LogOut,
-  Clock
+  Clock,
+  UserCog,
 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -39,7 +40,7 @@ export default function EmployeeLayout({
     userWithRole?.serverMetadata?.role;
 
   useEffect(() => {
-    if (role && role !== "employee") {
+    if (role === "admin") {
       router.replace("/admin/dashboard");
     }
   }, [role, router]);
@@ -48,15 +49,14 @@ export default function EmployeeLayout({
     return null;
   }
 
-  if (role && role !== "employee") {
+  if (role === "admin") {
     return null;
   }
 
   const navigation = [
     { name: "My Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "User Management", href: "/dashboard/user-management", icon: UserCog },
     { name: "Attendance", href: "/attendance", icon: Clock },
-    { name: "My Documents", href: "/documents", icon: FileCheck },
-    { name: "Company Directory", href: "/directory", icon: Building2 },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
@@ -85,12 +85,19 @@ export default function EmployeeLayout({
                 }}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                  pathname === item.href
+                  pathname === item.href || pathname.startsWith(item.href + "/")
                     ? "bg-primary/10 text-primary shadow-sm"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <item.icon className={cn("h-5 w-5", pathname === item.href ? "text-primary" : "text-muted-foreground")} />
+                <item.icon
+                  className={cn(
+                    "h-5 w-5",
+                    pathname === item.href || pathname.startsWith(item.href + "/")
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  )}
+                />
                 {item.name}
               </button>
             ))}
@@ -143,7 +150,7 @@ export default function EmployeeLayout({
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
         <div className="flex gap-1 overflow-x-auto">
           {navigation.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <button
                 key={item.name}

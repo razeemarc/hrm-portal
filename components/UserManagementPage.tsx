@@ -13,7 +13,7 @@ import {
 import { UserManagementForm } from "@/components/UserManagementForm";
 import { UserManagementList } from "@/components/UserManagementList";
 
-export default function UserManagementPage() {
+export function UserManagementPage() {
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
 
   return (
@@ -22,7 +22,7 @@ export default function UserManagementPage() {
         <div>
           <h1 className="text-2xl font-bold">User Management</h1>
           <p className="text-sm text-muted-foreground">
-            Create and manage HR and Accountant users.
+            Create and manage HR, Accountant, and Employee users.
           </p>
         </div>
         <Button onClick={() => setIsCreateDrawerOpen(true)}>
@@ -44,7 +44,7 @@ export default function UserManagementPage() {
                 Create User
               </SheetTitle>
               <SheetDescription className="text-sm">
-                Enter the user details and choose either HR or Accountant.
+                Enter the user details and choose a role.
               </SheetDescription>
             </SheetHeader>
 

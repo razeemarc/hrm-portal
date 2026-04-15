@@ -24,7 +24,7 @@ const navigation = [
   { name: "Offers", href: "/admin/offers", icon: ScrollText },
   { name: "Employees", href: "/admin/employees", icon: Building2 },
   { name: "Management", href: "/admin/management", icon: ClipboardCheck },
-  { name: "User Management", href: "/admin/user-management", icon: UserCog },
+  { name: "User Management", href: "/admin/dashboard/user-management", icon: UserCog },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
