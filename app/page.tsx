@@ -5,16 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FileCheck, ScrollText, Building2 } from "lucide-react";
 
+type RoleMetadata = {
+  role?: string;
+};
+
 export default async function Home() {
   const user = await stackServerApp.getUser();
   if (user) {
-    // @ts-ignore
-    const role = user.metadata?.role || user.serverMetadata?.role;
+    const typedUser = user as typeof user & {
+      metadata?: RoleMetadata;
+      serverMetadata?: RoleMetadata;
+    };
+    const role = typedUser.metadata?.role || typedUser.serverMetadata?.role;
     console.log("Home: Logged in user detected with role:", role);
-    if (role === "employee") {
-      redirect("/dashboard");
-    } else {
+    if (role === "admin") {
       redirect("/admin/dashboard");
+    } else {
+      redirect("/dashboard");
     }
   }
 

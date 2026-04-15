@@ -131,9 +131,9 @@ export default function DocumentsPage() {
                     <TableCell>
                       <div>
                         <Link
-                          href={`/candidates/${doc.candidateId}`}
-                          className="font-medium hover:underline"
-                        >
+                        href={`/admin/candidates/${doc.candidateId}`}
+                        className="font-medium hover:underline"
+                      >
                           {doc.candidate?.name ?? "Unknown"}
                         </Link>
                         <div className="text-sm text-gray-500">
@@ -226,7 +226,7 @@ export default function DocumentsPage() {
                   <TableRow key={doc._id}>
                     <TableCell className="font-medium">
                       <Link
-                        href={`/candidates/${doc.candidateId}`}
+                        href={`/admin/candidates/${doc.candidateId}`}
                         className="hover:underline"
                       >
                         {doc.candidate?.name ?? "Candidate"}
