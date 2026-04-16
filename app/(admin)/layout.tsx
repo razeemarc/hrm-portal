@@ -48,17 +48,41 @@ export default function DashboardLayout({
 
   // Security check: If employee tries to access /admin, redirect them back to their dashboard
   const userWithRole = user as typeof user & {
-    metadata?: RoleMetadata;
+    clientMetadata?: RoleMetadata;
     clientReadOnlyMetadata?: RoleMetadata;
   };
-  const role = userWithRole.metadata?.role || userWithRole.clientReadOnlyMetadata?.role;
+  const role = userWithRole.clientMetadata?.role || userWithRole.clientReadOnlyMetadata?.role;
   console.log("AdminLayout: User role", role);
   
-  if (role === "employee") {
-    console.log("AdminLayout: Employee detected, redirecting to /dashboard");
+  if (role === "employee" || role === "accountant") {
+    console.log("AdminLayout: Unauthorized role detected, redirecting to /dashboard");
     router.replace("/dashboard");
     return null;
   }
+
+  const filteredNavigation = navigation.filter((item) => {
+    // Admin role can only see Dashboard, User Management, and Settings
+    if (role === "admin") {
+      return ["Dashboard", "User Management", "Settings"].includes(item.name);
+    }
+    
+    // HR role can see all requested modules
+    if (role === "hr") {
+      return [
+        "Dashboard",
+        "Candidates",
+        "Documents",
+        "Offers",
+        "Employees",
+        "Management",
+        "User Management",
+        "Settings",
+      ].includes(item.name);
+    }
+    
+    // Default fallback for other roles or unauthenticated (though middleware should handle this)
+    return false;
+  });
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -72,7 +96,7 @@ export default function DashboardLayout({
           </Link>
         </div>
         <nav className="p-4 space-y-1">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link

@@ -17,7 +17,7 @@ export default function AuthCallback() {
           ("serverMetadata" in user ? user.serverMetadata?.role : undefined);
         console.log("AuthCallback: Role detected", role);
         
-        if (role === "admin") {
+        if (role === "admin" || role === "hr") {
           console.log("AuthCallback: Redirecting to /admin/dashboard");
           window.location.href = "/admin/dashboard";
         } else {
