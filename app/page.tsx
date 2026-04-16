@@ -18,7 +18,7 @@ export default async function Home() {
     };
     const role = typedUser.metadata?.role || typedUser.serverMetadata?.role;
     console.log("Home: Logged in user detected with role:", role);
-    if (role === "admin") {
+    if (role === "admin" || role === "hr") {
       redirect("/admin/dashboard");
     } else {
       redirect("/dashboard");

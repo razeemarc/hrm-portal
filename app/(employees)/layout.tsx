@@ -40,7 +40,7 @@ export default function EmployeeLayout({
     userWithRole?.serverMetadata?.role;
 
   useEffect(() => {
-    if (role === "admin") {
+    if (role === "admin" || role === "hr") {
       router.replace("/admin/dashboard");
     }
   }, [role, router]);
@@ -49,7 +49,7 @@ export default function EmployeeLayout({
     return null;
   }
 
-  if (role === "admin") {
+  if (role === "admin" || role === "hr") {
     return null;
   }
 
