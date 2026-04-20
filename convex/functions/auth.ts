@@ -162,8 +162,9 @@ export const createManagementUser = mutation({
     const normalizedEmail = normalizeEmail(args.email);
     const normalizedRole = args.role.trim().toLowerCase();
 
-    if (!["hr", "accountant"].includes(normalizedRole)) {
-      throw new Error("Role must be either hr or accountant");
+    // Allowed roles for management users
+    if (!["hr", "accountant", "admin", "employee"].includes(normalizedRole)) {
+      throw new Error("Role must be either hr, accountant, admin, or employee");
     }
 
     const existing = await ctx.db

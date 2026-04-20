@@ -31,7 +31,7 @@ const managementUserSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["hr", "accountant"], {
+  role: z.enum(["hr", "accountant", "admin"], {
     message: "Select a role",
   }),
 });
@@ -48,7 +48,7 @@ export function UserManagementForm({
   onCancel,
 }: UserManagementFormProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const [roleValue, setRoleValue] = useState<"hr" | "accountant">("hr");
+  const [roleValue, setRoleValue] = useState<"hr" | "accountant" | "admin">("hr");
   const createManagementUser = useMutation(api.functions.auth.createManagementUser);
 
   const form = useForm<UserManagementFormValues>({
@@ -202,7 +202,7 @@ export function UserManagementForm({
                 </FormLabel>
                 <Select
                   onValueChange={(value) => {
-                    const nextValue = value as "hr" | "accountant";
+                    const nextValue = value as "hr" | "accountant" | "admin";
                     setRoleValue(nextValue);
                     field.onChange(nextValue);
                   }}
@@ -216,6 +216,7 @@ export function UserManagementForm({
                   <SelectContent>
                     <SelectItem value="hr">HR</SelectItem>
                     <SelectItem value="accountant">Accountant</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
