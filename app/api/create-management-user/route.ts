@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stackServerApp } from "@/lib/stack/server";
 
-const allowedRoles = new Set(["hr", "accountant"]);
+const allowedRoles = new Set(["hr", "accountant", "admin", "employee"]);
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     if (!allowedRoles.has(normalizedRole)) {
       return NextResponse.json(
-        { error: "Role must be either hr or accountant" },
+        { error: "Role must be either hr, accountant, admin, or employee" },
         { status: 400 }
       );
     }

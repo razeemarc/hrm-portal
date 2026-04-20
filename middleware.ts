@@ -77,13 +77,13 @@ export async function middleware(request: NextRequest) {
   if (role === "hr" && isAdminPath) {
     const allowedHrPaths = [
       "/admin/dashboard",
-      "/admin/dashboard/user-management",
       "/admin/settings",
       "/admin/candidates",
       "/admin/documents",
       "/admin/offers",
       "/admin/employees",
       "/admin/management",
+      "/admin/dashboard/user-management",
     ];
     const isAllowed = allowedHrPaths.some(path => pathname === path || pathname.startsWith(path + "/"));
     

@@ -2,6 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useUser } from "@stackframe/stack";
 import Link from "next/link";
 import {
   Card,
@@ -17,7 +18,13 @@ import {
   UserCheck,
   Clock,
   Loader2,
+  UserCog,
+  Settings,
 } from "lucide-react";
+
+type RoleMetadata = {
+  role?: string;
+};
 
 const statusColors: Record<string, string> = {
   invited: "bg-blue-100 text-blue-800",
@@ -29,8 +36,16 @@ const statusColors: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const user = useUser();
+  const userWithRole = user as typeof user & {
+    clientMetadata?: RoleMetadata;
+    clientReadOnlyMetadata?: RoleMetadata;
+  };
+  const role = userWithRole?.clientMetadata?.role || userWithRole?.clientReadOnlyMetadata?.role;
+
   const stats = useQuery(api.functions.candidates.getDashboardStats);
   const recentCandidates = useQuery(api.functions.candidates.getCandidates);
+  const users = useQuery(api.functions.auth.getUsers);
 
   const recent = recentCandidates
     ? [...recentCandidates]
@@ -40,9 +55,152 @@ export default function DashboardPage() {
 
   const isLoading = stats === undefined;
 
+  // If role is admin, show a simplified dashboard focused on user management
+  if (role === "admin") {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Users
+              </CardTitle>
+              <Users className="h-4 w-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              {users === undefined ? (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{users.length}</div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    System users across all roles
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                HR Users
+              </CardTitle>
+              <UserCheck className="h-4 w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              {users === undefined ? (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">
+                    {users.filter(u => u.role === "hr").length}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Active HR management accounts
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Employees
+              </CardTitle>
+              <Users className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              {users === undefined ? (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">
+                    {users.filter(u => u.role === "employee").length}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Registered employee accounts
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">System Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Link
+                  href="/admin/dashboard/user-management"
+                  className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                    <UserCog className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-medium">User Management</div>
+                    <div className="text-sm text-muted-foreground">Manage roles and system permissions</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/admin/settings"
+                  className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                    <Settings className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-medium">System Settings</div>
+                    <div className="text-sm text-muted-foreground">Configure global portal preferences</div>
+                  </div>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Recent Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {users === undefined ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {users.slice(0, 5).map((u) => (
+                    <div key={u._id} className="flex items-center justify-between p-2">
+                      <div>
+                        <div className="text-sm font-medium">{u.name}</div>
+                        <div className="text-xs text-muted-foreground">{u.email}</div>
+                      </div>
+                      <Badge variant="outline" className="capitalize">
+                        {u.role}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // HR Dashboard (original view)
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-6">HR Dashboard</h1>
 
       {/* Stats Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
