@@ -21,8 +21,12 @@ export default function AccountRestrictedPage() {
         </div>
 
         <div className="pt-4">
-          <Button asChild className="w-full">
-            <Link href="/handler/logout">Sign Out</Link>
+          <Button 
+            render={<Link href="/handler/logout" />}
+            className="w-full"
+            nativeButton={false}
+          >
+            Sign Out
           </Button>
         </div>
         

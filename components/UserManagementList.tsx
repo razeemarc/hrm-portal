@@ -23,6 +23,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   BriefcaseBusiness, 
   Loader2, 
@@ -33,7 +41,8 @@ import {
   UserX,
   UserCheck,
   Edit,
-  ShieldAlert
+  ShieldAlert,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -51,19 +60,32 @@ interface UserManagementListProps {
 
 export function UserManagementList({ onEdit }: UserManagementListProps) {
   const [search, setSearch] = useState("");
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [userToToggle, setUserToToggle] = useState<any>(null);
+  const [isToggling, setIsToggling] = useState(false);
+
   const users = useQuery(api.functions.auth.getUsers);
   const toggleStatus = useMutation(api.functions.auth.toggleUserBlockStatus);
 
-  const handleToggleBlock = async (user: any) => {
-    const newStatus = user.status === "blocked" ? "active" : "blocked";
+  const handleToggleBlock = (user: any) => {
+    setUserToToggle(user);
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!userToToggle) return;
+
+    const newStatus = userToToggle.status === "blocked" ? "active" : "blocked";
+    setIsToggling(true);
+    
     try {
       // 1. Update Stack Auth
       const response = await fetch("/api/update-user-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          stackUserId: user.stackUserId,
-          email: user.email, // Fallback if stackUserId is missing in database
+          stackUserId: userToToggle.stackUserId,
+          email: userToToggle.email, // Fallback if stackUserId is missing in database
           status: newStatus,
         }),
       });
@@ -73,7 +95,7 @@ export function UserManagementList({ onEdit }: UserManagementListProps) {
 
       // 2. Update Convex
       await toggleStatus({
-        userId: user._id,
+        userId: userToToggle._id,
         status: newStatus,
       });
 
@@ -82,8 +104,12 @@ export function UserManagementList({ onEdit }: UserManagementListProps) {
           ? "User restricted successfully" 
           : "User access restored"
       );
+      setIsConfirmOpen(false);
     } catch (error: any) {
       toast.error(error.message || "Failed to toggle user status");
+    } finally {
+      setIsToggling(false);
+      setUserToToggle(null);
     }
   };
 
@@ -294,6 +320,45 @@ export function UserManagementList({ onEdit }: UserManagementListProps) {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-destructive mb-2">
+              <AlertTriangle className="h-5 w-5" />
+              <DialogTitle>Confirm Action</DialogTitle>
+            </div>
+            <DialogDescription className="text-base">
+              {userToToggle?.status === "blocked" ? (
+                <>Are you sure you want to <strong>unblock</strong> access for <strong>{userToToggle?.name}</strong>?</>
+              ) : (
+                <>Are you sure you want to <strong>block</strong> access for <strong>{userToToggle?.name}</strong>? This user will no longer be able to sign in.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6">
+            <Button
+              variant="ghost"
+              onClick={() => setIsConfirmOpen(false)}
+              disabled={isToggling}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={userToToggle?.status === "blocked" ? "default" : "destructive"}
+              onClick={handleConfirmToggle}
+              disabled={isToggling}
+              className="min-w-[100px]"
+            >
+              {isToggling ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                userToToggle?.status === "blocked" ? "Yes, Unblock" : "Yes, Block"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
