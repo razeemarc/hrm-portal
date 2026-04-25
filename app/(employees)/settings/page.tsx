@@ -50,6 +50,7 @@ export default function EmployeeSettingsPage() {
       const userId = await syncUser({
         name,
         email: user.primaryEmail,
+        stackUserId: user.id,
       });
 
       if (!userId) {

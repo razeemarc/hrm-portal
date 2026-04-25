@@ -21,11 +21,13 @@ export default defineSchema({
 
   // User table - HR admin users
   users: defineTable({
+    stackUserId: v.optional(v.string()),
     email: v.string(),
     name: v.string(),
     role: v.optional(v.string()), // "admin", "hr", "employee"
     passwordHash: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
+    status: v.optional(v.string()), // "active", "blocked"
     createdAt: v.number(),
     // Employee details for non-admin users
     phone: v.optional(v.string()),

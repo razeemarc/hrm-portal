@@ -30,7 +30,7 @@ import { Eye, EyeOff, Loader2, Lock, Mail, Save, ShieldCheck, User, X } from "lu
 const managementUserSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
   role: z.enum(["hr", "accountant", "admin"], {
     message: "Select a role",
   }),
@@ -41,23 +41,32 @@ type UserManagementFormValues = z.infer<typeof managementUserSchema>;
 interface UserManagementFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  initialData?: {
+    userId: string;
+    stackUserId?: string;
+    name: string;
+    email: string;
+    role: "hr" | "accountant" | "admin";
+  };
 }
 
 export function UserManagementForm({
   onSuccess,
   onCancel,
+  initialData,
 }: UserManagementFormProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const [roleValue, setRoleValue] = useState<"hr" | "accountant" | "admin">("hr");
+  const [roleValue, setRoleValue] = useState<"hr" | "accountant" | "admin">(initialData?.role ?? "hr");
   const createManagementUser = useMutation(api.functions.auth.createManagementUser);
+  const updateManagementUser = useMutation(api.functions.auth.updateManagementUser);
 
   const form = useForm<UserManagementFormValues>({
     resolver: zodResolver(managementUserSchema),
     defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      role: "hr",
+      name: initialData?.name ?? "",
+      email: initialData?.email ?? "",
+      password: initialData ? "******" : "", // Placeholder for edit mode
+      role: initialData?.role ?? "hr",
     },
   });
 
@@ -65,32 +74,56 @@ export function UserManagementForm({
 
   async function onSubmit(values: UserManagementFormValues) {
     try {
-      const response = await fetch("/api/create-management-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
+      if (initialData) {
+        // Edit mode
+        const response = await fetch("/api/update-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stackUserId: initialData.stackUserId,
+            name: values.name,
+            email: values.email,
+            role: values.role,
+          }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to update user");
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create management user");
+        await updateManagementUser({
+          userId: initialData.userId as any,
+          name: values.name,
+          email: values.email,
+          role: values.role,
+        });
+
+        toast.success("User updated successfully");
+      } else {
+        // Create mode
+        if (!values.password) {
+          toast.error("Password is required for new users");
+          return;
+        }
+        const response = await fetch("/api/create-management-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to create user");
+
+        await createManagementUser({
+          email: values.email,
+          name: values.name,
+          role: values.role,
+          stackUserId: data.userId,
+        });
+
+        toast.success("User created successfully");
       }
-
-      await createManagementUser({
-        email: values.email,
-        name: values.name,
-        role: values.role,
-      });
-
-      toast.success("User created successfully");
-      form.reset({
-        name: "",
-        email: "",
-        password: "",
-        role: "hr",
-      });
-      setRoleValue("hr");
+      
+      form.reset();
       onSuccess();
     } catch (error: unknown) {
       console.error(error);
@@ -156,41 +189,43 @@ export function UserManagementForm({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem className="space-y-1">
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Password
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter password"
-                      className="h-11 bg-muted/30 pl-10 pr-10"
-                      {...field}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((current) => !current)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {!initialData && (
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Password
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter password"
+                        className="h-11 bg-muted/30 pl-10 pr-10"
+                        {...field}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((current) => !current)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}
@@ -236,7 +271,7 @@ export function UserManagementForm({
             ) : (
               <Save className="mr-2 h-5 w-5" />
             )}
-            Create User
+            {initialData ? "Update User" : "Create User"}
           </Button>
           <Button
             type="button"

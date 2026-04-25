@@ -84,6 +84,7 @@ export default function AttendancePage() {
         const syncedUserId = await syncUser({
           name: user.displayName || "Employee",
           email: user.primaryEmail || "",
+          stackUserId: user.id,
         });
         if (!syncedUserId) {
           return;

@@ -37,9 +37,11 @@ export async function POST(req: NextRequest) {
         displayName: normalizedName,
         clientReadOnlyMetadata: {
           role: normalizedRole,
+          status: "active",
         },
         serverMetadata: {
           role: normalizedRole,
+          status: "active",
         },
       });
     } catch (error) {
@@ -66,9 +68,11 @@ export async function POST(req: NextRequest) {
       displayName: normalizedName,
       clientReadOnlyMetadata: {
         role: normalizedRole,
+        status: "active",
       },
       serverMetadata: {
         role: normalizedRole,
+        status: "active",
       },
     });
 
