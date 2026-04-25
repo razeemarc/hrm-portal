@@ -3,6 +3,7 @@ import { stackServerApp } from "@/lib/stack/server";
 
 type RoleMetadata = {
   role?: string;
+  status?: string;
 };
 
 function getRole(user: {
@@ -17,8 +18,25 @@ function getRole(user: {
   );
 }
 
+function getStatus(user: {
+  metadata?: RoleMetadata;
+  clientReadOnlyMetadata?: RoleMetadata;
+  serverMetadata?: RoleMetadata;
+} | null) {
+  return (
+    user?.metadata?.status ||
+    user?.clientReadOnlyMetadata?.status ||
+    user?.serverMetadata?.status
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // If visiting restricted page, allow it
+  if (pathname === "/account-restricted") {
+    return NextResponse.next();
+  }
 
   // Handle /admin redirect
   if (pathname === "/admin") {
@@ -58,6 +76,12 @@ export async function middleware(request: NextRequest) {
   }
 
   const role = getRole(user as Parameters<typeof getRole>[0]);
+  const status = getStatus(user as Parameters<typeof getStatus>[0]);
+
+  // Block access if user is blocked
+  if (status === "blocked" && pathname !== "/handler/logout") {
+    return NextResponse.redirect(new URL("/account-restricted", request.url));
+  }
 
   // Handle Admin role specifically for admin paths (Restricted)
   if (role === "admin" && isAdminPath) {

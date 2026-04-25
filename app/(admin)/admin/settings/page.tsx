@@ -71,6 +71,7 @@ export default function SettingsPage() {
       const syncedUserId = await syncUser({
         name: userName,
         email: user.primaryEmail || "",
+        stackUserId: user.id,
       });
 
       if (!syncedUserId) {

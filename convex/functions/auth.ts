@@ -157,6 +157,7 @@ export const createManagementUser = mutation({
     email: v.string(),
     name: v.string(),
     role: v.string(),
+    stackUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const normalizedEmail = normalizeEmail(args.email);
@@ -177,6 +178,8 @@ export const createManagementUser = mutation({
         email: normalizedEmail,
         name: args.name.trim(),
         role: normalizedRole,
+        stackUserId: args.stackUserId ?? existing.stackUserId,
+        status: "active",
       });
       return existing._id;
     }
@@ -185,8 +188,50 @@ export const createManagementUser = mutation({
       email: normalizedEmail,
       name: args.name.trim(),
       role: normalizedRole,
+      stackUserId: args.stackUserId,
+      status: "active",
       createdAt: Date.now(),
     });
+  },
+});
+
+export const toggleUserBlockStatus = mutation({
+  args: {
+    userId: v.id("users"),
+    status: v.string(), // "active" or "blocked"
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, {
+      status: args.status,
+    });
+    return args.userId;
+  },
+});
+
+export const updateManagementUser = mutation({
+  args: {
+    userId: v.id("users"),
+    name: v.string(),
+    email: v.string(),
+    role: v.string(),
+    stackUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const normalizedEmail = normalizeEmail(args.email);
+    const normalizedRole = args.role.trim().toLowerCase();
+
+    if (!["hr", "accountant", "admin", "employee"].includes(normalizedRole)) {
+      throw new Error("Role must be either hr, accountant, admin, or employee");
+    }
+
+    await ctx.db.patch(args.userId, {
+      name: args.name.trim(),
+      email: normalizedEmail,
+      role: normalizedRole,
+      stackUserId: args.stackUserId,
+    });
+    
+    return args.userId;
   },
 });
 
@@ -195,6 +240,7 @@ export const syncUser = mutation({
   args: {
     name: v.string(),
     email: v.string(),
+    stackUserId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (!args.email) {
@@ -214,6 +260,7 @@ export const syncUser = mutation({
         name: args.name,
         email: normalizedEmail,
         role: existing.role ?? role,
+        stackUserId: args.stackUserId ?? existing.stackUserId,
       });
       return existing._id;
     } else {
@@ -221,6 +268,8 @@ export const syncUser = mutation({
         email: normalizedEmail,
         name: args.name,
         role,
+        stackUserId: args.stackUserId,
+        status: "active",
         createdAt: Date.now(),
       });
     }

@@ -15,6 +15,25 @@ import { UserManagementList } from "@/components/UserManagementList";
 
 export function UserManagementPage() {
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+
+  const handleEdit = (user: any) => {
+    setEditingUser({
+      userId: user._id,
+      stackUserId: user.stackUserId,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+    setIsCreateDrawerOpen(true);
+  };
+
+  const handleDrawerClose = (open: boolean) => {
+    setIsCreateDrawerOpen(open);
+    if (!open) {
+      setEditingUser(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -25,15 +44,18 @@ export function UserManagementPage() {
             Create and manage HR, Accountant, and Employee users.
           </p>
         </div>
-        <Button onClick={() => setIsCreateDrawerOpen(true)}>
+        <Button onClick={() => {
+          setEditingUser(null);
+          setIsCreateDrawerOpen(true);
+        }}>
           <Plus className="mr-2 h-4 w-4" />
           Create User
         </Button>
       </div>
 
-      <UserManagementList />
+      <UserManagementList onEdit={handleEdit} />
 
-      <Sheet open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen}>
+      <Sheet open={isCreateDrawerOpen} onOpenChange={handleDrawerClose}>
         <SheetContent
           side="right"
           className="flex w-full flex-col border-l p-0 shadow-2xl sm:max-w-lg"
@@ -41,17 +63,20 @@ export function UserManagementPage() {
           <div className="flex-1 overflow-y-auto px-6 py-8">
             <SheetHeader className="mb-6">
               <SheetTitle className="text-2xl font-bold tracking-tight">
-                Create User
+                {editingUser ? "Edit User" : "Create User"}
               </SheetTitle>
               <SheetDescription className="text-sm">
-                Enter the user details and choose a role.
+                {editingUser 
+                  ? "Update user details and role." 
+                  : "Enter the user details and choose a role."}
               </SheetDescription>
             </SheetHeader>
 
             <div className="mt-2">
               <UserManagementForm
-                onSuccess={() => setIsCreateDrawerOpen(false)}
-                onCancel={() => setIsCreateDrawerOpen(false)}
+                initialData={editingUser}
+                onSuccess={() => handleDrawerClose(false)}
+                onCancel={() => handleDrawerClose(false)}
               />
             </div>
           </div>
