@@ -15,7 +15,19 @@ export default function AuthCallback() {
           user.clientMetadata?.role ||
           user.clientReadOnlyMetadata?.role ||
           ("serverMetadata" in user ? user.serverMetadata?.role : undefined);
-        console.log("AuthCallback: Role detected", role);
+        
+        const status =
+          user.clientMetadata?.status ||
+          user.clientReadOnlyMetadata?.status ||
+          ("serverMetadata" in user ? user.serverMetadata?.status : undefined);
+        
+        console.log("AuthCallback: Role detected", role, "Status", status);
+
+        if (status === "blocked") {
+          console.log("AuthCallback: Account restricted, redirecting");
+          window.location.href = "/account-restricted";
+          return;
+        }
         
         if (role === "admin" || role === "hr") {
           console.log("AuthCallback: Redirecting to /admin/dashboard");

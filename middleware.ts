@@ -57,8 +57,10 @@ export async function middleware(request: NextRequest) {
     pathname === "/admin/dashboard/user-management";
 
   const isAdminPath = pathname.startsWith("/admin");
+  const isEmployeePath = pathname.startsWith("/dashboard") || pathname.startsWith("/attendance") || pathname.startsWith("/settings");
 
-  if (!isUserManagementPath && !isAdminPath) {
+  // For any protected path, we need to check the user
+  if (!isUserManagementPath && !isAdminPath && !isEmployeePath) {
     return NextResponse.next();
   }
 
@@ -69,7 +71,7 @@ export async function middleware(request: NextRequest) {
   });
 
   if (!user) {
-    if (isUserManagementPath || isAdminPath) {
+    if (isUserManagementPath || isAdminPath || isEmployeePath) {
       return NextResponse.redirect(new URL("/handler/login", request.url));
     }
     return NextResponse.next();
@@ -78,7 +80,7 @@ export async function middleware(request: NextRequest) {
   const role = getRole(user as Parameters<typeof getRole>[0]);
   const status = getStatus(user as Parameters<typeof getStatus>[0]);
 
-  // Block access if user is blocked
+  // Block access if user is blocked - this now applies to ALL protected paths
   if (status === "blocked" && pathname !== "/handler/logout") {
     return NextResponse.redirect(new URL("/account-restricted", request.url));
   }
@@ -138,5 +140,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login", "/signup", "/user-management", "/dashboard/user-management"],
+  matcher: [
+    "/admin/:path*", 
+    "/dashboard/:path*", 
+    "/attendance/:path*", 
+    "/settings/:path*",
+    "/login", 
+    "/signup", 
+    "/user-management",
+  ],
 };
