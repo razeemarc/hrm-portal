@@ -20,17 +20,7 @@ export default function AccountRestrictedPage() {
           </p>
         </div>
 
-        <div className="pt-4">
-          <Button 
-            render={<Link href="/handler/logout" />}
-            className="w-full"
-            nativeButton={false}
-          >
-            Sign Out
-          </Button>
-        </div>
-        
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-400 pt-4">
           If you believe this is a mistake, please contact your HR department.
         </p>
       </div>

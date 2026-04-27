@@ -7,6 +7,7 @@ import { Users, FileCheck, ScrollText, Building2 } from "lucide-react";
 
 type RoleMetadata = {
   role?: string;
+  status?: string;
 };
 
 export default async function Home() {
@@ -17,7 +18,14 @@ export default async function Home() {
       serverMetadata?: RoleMetadata;
     };
     const role = typedUser.metadata?.role || typedUser.serverMetadata?.role;
-    console.log("Home: Logged in user detected with role:", role);
+    const status = typedUser.metadata?.status || typedUser.serverMetadata?.status;
+    
+    console.log("Home: Logged in user detected. Role:", role, "Status:", status);
+
+    if (status === "blocked") {
+      redirect("/account-restricted");
+    }
+
     if (role === "admin" || role === "hr") {
       redirect("/admin/dashboard");
     } else {
