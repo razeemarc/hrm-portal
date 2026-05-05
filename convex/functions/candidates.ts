@@ -65,6 +65,12 @@ export const getDashboardStats = query({
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .collect();
 
+    // Get pending leaves count
+    const pendingLeaves = await ctx.db
+      .query("leave_requests")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect();
+
     return {
       totalCandidates,
       pendingReviews,
@@ -72,6 +78,7 @@ export const getDashboardStats = query({
       offered,
       newHiresThisMonth,
       pendingDocuments: pendingDocuments.length,
+      pendingLeaves: pendingLeaves.length,
     };
   },
 });

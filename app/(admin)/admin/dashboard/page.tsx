@@ -20,6 +20,7 @@ import {
   Loader2,
   UserCog,
   Settings,
+  CalendarClock,
 } from "lucide-react";
 
 type RoleMetadata = {
@@ -203,7 +204,7 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold mb-6">HR Dashboard</h1>
 
       {/* Stats Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
@@ -279,6 +280,40 @@ export default function DashboardPage() {
                   {stats.newHiresThisMonth}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">This month</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Pending Documents</CardTitle>
+            <FileCheck className="h-4 w-4 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.pendingDocuments}</div>
+                <p className="text-xs text-gray-500 mt-1">Requires review</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Pending Leaves</CardTitle>
+            <CalendarClock className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.pendingLeaves}</div>
+                <p className="text-xs text-gray-500 mt-1">Awaiting approval</p>
               </>
             )}
           </CardContent>

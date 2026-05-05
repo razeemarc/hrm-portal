@@ -57,7 +57,7 @@ export async function middleware(request: NextRequest) {
     pathname === "/admin/dashboard/user-management";
 
   const isAdminPath = pathname.startsWith("/admin");
-  const isEmployeePath = pathname.startsWith("/dashboard") || pathname.startsWith("/attendance") || pathname.startsWith("/settings");
+  const isEmployeePath = pathname.startsWith("/dashboard") || pathname.startsWith("/attendance") || pathname.startsWith("/leaves") || pathname.startsWith("/settings");
 
   // For any protected path, we need to check the user
   if (!isUserManagementPath && !isAdminPath && !isEmployeePath) {
@@ -108,8 +108,8 @@ export async function middleware(request: NextRequest) {
       "/admin/documents",
       "/admin/offers",
       "/admin/employees",
+      "/admin/leaves",
       "/admin/management",
-      "/admin/dashboard/user-management",
     ];
     const isAllowed = allowedHrPaths.some(path => pathname === path || pathname.startsWith(path + "/"));
     
@@ -120,7 +120,7 @@ export async function middleware(request: NextRequest) {
 
   // Original user management logic
   if (isUserManagementPath) {
-    if (role === "admin" || role === "hr") {
+    if (role === "admin") {
       if (pathname !== "/admin/dashboard/user-management") {
         return NextResponse.redirect(
           new URL("/admin/dashboard/user-management", request.url)
@@ -129,11 +129,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    if (role === "accountant" || role === "employee") {
-      if (pathname !== "/dashboard/user-management") {
-        return NextResponse.redirect(new URL("/dashboard/user-management", request.url));
-      }
-    }
+    // Block all other roles from accessing user management
+    return NextResponse.redirect(new URL(role === "hr" ? "/admin/dashboard" : "/dashboard", request.url));
   }
 
   return NextResponse.next();
@@ -144,6 +141,7 @@ export const config = {
     "/admin/:path*", 
     "/dashboard/:path*", 
     "/attendance/:path*", 
+    "/leaves/:path*",
     "/settings/:path*",
     "/login", 
     "/signup", 
