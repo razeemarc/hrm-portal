@@ -12,6 +12,7 @@ import {
   LogOut,
   Clock,
   UserCog,
+  CalendarDays,
 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -55,8 +56,8 @@ export default function EmployeeLayout({
 
   const navigation = [
     { name: "My Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "User Management", href: "/dashboard/user-management", icon: UserCog },
     { name: "Attendance", href: "/attendance", icon: Clock },
+    { name: "Leaves", href: "/leaves", icon: CalendarDays },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
@@ -109,8 +110,10 @@ export default function EmployeeLayout({
                 {user.displayName?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate text-foreground">{user.displayName || 'Employee'}</p>
-                <p className="text-[11px] text-muted-foreground truncate uppercase tracking-wider font-bold">Employee Portal</p>
+                <p className="text-sm font-semibold truncate text-foreground">{user.displayName || 'User'}</p>
+                <p className="text-[11px] text-muted-foreground truncate uppercase tracking-wider font-bold">
+                  Role: {role === 'hr' ? 'HR' : role ? (role.charAt(0).toUpperCase() + role.slice(1)) : 'User'}
+                </p>
               </div>
             </div>
             <Button

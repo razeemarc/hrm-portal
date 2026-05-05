@@ -1,6 +1,8 @@
 "use client";
 
 import { useUser } from "@stackframe/stack";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import {
   Briefcase,
   User,
@@ -9,7 +11,9 @@ import {
   DollarSign,
   MapPin,
   Phone,
-  FileCheck
+  FileCheck,
+  CalendarClock,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +23,20 @@ import { Button } from "@/components/ui/button";
 export default function EmployeeDashboard() {
   const user = useUser({ or: 'redirect' });
 
+  const convexUser = useQuery(api.functions.auth.getUserByEmail, 
+    user?.primaryEmail ? { email: user.primaryEmail } : "skip"
+  );
+
+  const leaves = useQuery(api.functions.leaves.getMyLeaves, 
+    convexUser ? { userId: convexUser._id } : "skip"
+  );
+
   if (!user) {
     return null;
   }
+
+  const pendingLeavesCount = leaves?.filter(l => l.status === "pending").length || 0;
+  const approvedLeavesCount = leaves?.filter(l => l.status === "approved").length || 0;
 
   return (
     <div className="max-w-7xl mx-auto w-full">
@@ -113,6 +128,33 @@ export default function EmployeeDashboard() {
               <Badge variant="secondary" className="mt-4 bg-primary/10 text-primary border-primary/20">
                 Full-time Employee
               </Badge>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border-muted/60">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-orange-500" />
+                Leave Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {leaves === undefined ? (
+                <div className="flex justify-center py-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-2xl font-bold">{pendingLeavesCount}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Pending</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-2xl font-bold text-green-600">{approvedLeavesCount}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Approved</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

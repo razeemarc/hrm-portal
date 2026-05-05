@@ -15,6 +15,7 @@ import {
   UserCog,
   Settings,
   LogOut,
+  CalendarDays,
 } from "lucide-react";
 
 const navigation = [
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Documents", href: "/admin/documents", icon: FileCheck },
   { name: "Offers", href: "/admin/offers", icon: ScrollText },
   { name: "Employees", href: "/admin/employees", icon: Building2 },
+  { name: "Leaves", href: "/admin/leaves", icon: CalendarDays },
   { name: "Management", href: "/admin/management", icon: ClipboardCheck },
   { name: "User Management", href: "/admin/dashboard/user-management", icon: UserCog },
   { name: "Settings", href: "/admin/settings", icon: Settings },
@@ -61,7 +63,7 @@ export default function DashboardLayout({
   }
 
   const filteredNavigation = navigation.filter((item) => {
-    // Admin role can only see Dashboard, User Management, and Settings
+    // Admin role can see Dashboard, User Management, and Settings
     if (role === "admin") {
       return ["Dashboard", "User Management", "Settings"].includes(item.name);
     }
@@ -74,8 +76,8 @@ export default function DashboardLayout({
         "Documents",
         "Offers",
         "Employees",
+        "Leaves",
         "Management",
-        "User Management",
         "Settings",
       ].includes(item.name);
     }
@@ -122,7 +124,9 @@ export default function DashboardLayout({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user.displayName || 'User'}</p>
-              <p className="text-xs text-gray-500 truncate">{user.primaryEmail}</p>
+              <p className="text-[10px] text-gray-500 truncate uppercase tracking-wider font-bold">
+                Role: {role === 'hr' ? 'HR' : role ? (role.charAt(0).toUpperCase() + role.slice(1)) : 'Admin'}
+              </p>
             </div>
           </div>
           <Button

@@ -140,4 +140,20 @@ export default defineSchema({
     logoUrl: v.optional(v.string()),
     updatedAt: v.number(),
   }),
+
+  // Leave Requests table
+  leave_requests: defineTable({
+    userId: v.id("users"),
+    type: v.string(), // "sick", "casual", "vacation", "other"
+    startDate: v.number(), // timestamp
+    endDate: v.number(), // timestamp
+    reason: v.string(),
+    status: v.string(), // "pending", "approved", "rejected"
+    appliedAt: v.number(),
+    processedAt: v.optional(v.number()),
+    processedBy: v.optional(v.id("users")),
+    comments: v.optional(v.string()), // feedback from HR/Admin
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"]),
 });
