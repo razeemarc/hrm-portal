@@ -26,10 +26,10 @@ export async function POST(req: NextRequest) {
         password: normalizedPassword,
         displayName: normalizedName,
         clientReadOnlyMetadata: {
-          role: "admin",
+          role: "employee",
         },
         serverMetadata: {
-          role: "admin",
+          role: "employee",
         },
       });
     } catch (error) {
@@ -55,17 +55,17 @@ export async function POST(req: NextRequest) {
       password: normalizedPassword,
       displayName: normalizedName,
       clientReadOnlyMetadata: {
-        role: "admin",
+        role: "employee",
       },
       serverMetadata: {
-        role: "admin",
+        role: "employee",
       },
     });
 
     return NextResponse.json({ 
       success: true, 
       userId: user.id,
-      message: "User created in Stack Auth successfully as an admin"
+      message: "User created in Stack Auth successfully as an employee"
     });
 
   } catch (error: unknown) {

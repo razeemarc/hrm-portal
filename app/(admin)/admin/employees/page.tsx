@@ -30,11 +30,11 @@ export default function EmployeesPage() {
 
       {/* Create Employee Drawer */}
       <Sheet open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-lg border-l shadow-2xl p-0 flex flex-col">
-          <div className="flex-1 overflow-y-auto px-6 py-8">
-            <SheetHeader className="mb-6">
-              <SheetTitle className="text-2xl font-bold tracking-tight">Add New Employee</SheetTitle>
-              <SheetDescription className="text-sm">
+        <SheetContent side="right" className="w-full sm:max-w-4xl border-l shadow-2xl p-0 flex flex-col">
+          <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-12">
+            <SheetHeader className="mb-8 px-0">
+              <SheetTitle className="text-[2rem] font-semibold tracking-tight">Add New Employee</SheetTitle>
+              <SheetDescription className="max-w-md text-base leading-7">
                 Enter the employee details below to add them to the system.
               </SheetDescription>
             </SheetHeader>

@@ -37,7 +37,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Search, Mail } from "lucide-react";
+import { Plus, Search, Mail, ChevronLeft, ChevronRight } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -110,6 +110,8 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Convex integration
   const candidatesData = useQuery(api.functions.candidates.getCandidates) || [];
@@ -199,40 +201,24 @@ export default function CandidatesPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const totalPages = Math.ceil(filteredCandidates.length / ITEMS_PER_PAGE);
+  const paginatedCandidates = filteredCandidates.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (val: string) => {
+    setStatusFilter(val || "all");
+    setCurrentPage(1);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Quick Access Card */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row items-center gap-4">
-            <div className="flex-1">
-              <h3 className="font-semibold text-blue-900">Quick Email Invite</h3>
-              <p className="text-sm text-blue-700">
-                Enter a candidate&apos;s email to send them a direct invite link via Gmail.
-              </p>
-            </div>
-            <div className="flex w-full md:w-auto gap-2">
-              <Input
-                id="direct-email"
-                placeholder="candidate@example.com"
-                className="bg-white border-blue-200 focus-visible:ring-blue-500"
-              />
-              <Button
-                onClick={async () => {
-                  const emailInput = document.getElementById("direct-email") as HTMLInputElement;
-                  await handleQuickInvite(emailInput?.value?.trim());
-                  if (emailInput) emailInput.value = "";
-                }}
-                className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Send Invite
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Candidates</h1>
         <div className="flex gap-2">
@@ -369,11 +355,11 @@ export default function CandidatesPage() {
           <Input
             placeholder="Search by name, email, or role..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v || "all")}>
+        <Select value={statusFilter} onValueChange={handleStatusChange}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -405,14 +391,14 @@ export default function CandidatesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCandidates.length === 0 ? (
+              {paginatedCandidates.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     No candidates found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredCandidates.map((candidate) => (
+                paginatedCandidates.map((candidate) => (
                   <TableRow key={candidate._id}>
                     <TableCell>
                       <div>
@@ -460,6 +446,49 @@ export default function CandidatesPage() {
               )}
             </TableBody>
           </Table>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-4 border-t">
+              <div className="text-sm text-gray-500">
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredCandidates.length)} of{" "}
+                {filteredCandidates.length} candidates
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className="w-8"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,11 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUser } from "@stackframe/stack";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Loader2, Plus, Info } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Loader2,
+  Plus,
+  Info,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -75,8 +85,10 @@ const leaveSchema = z.object({
 });
 
 export default function LeavesPage() {
-  const user = useUser();
+  const user = useUser({ or: 'redirect' });
   const [isOpen, setIsOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Sync user first if not in DB
   const syncUser = useMutation(api.functions.auth.syncUser);
@@ -88,6 +100,16 @@ export default function LeavesPage() {
     convexUser ? { userId: convexUser._id } : "skip"
   );
   const applyForLeave = useMutation(api.functions.leaves.applyForLeave);
+
+  const paginatedLeaves = useMemo(() => {
+    if (!leaves) return [];
+    return leaves.slice(
+      (currentPage - 1) * ITEMS_PER_PAGE,
+      currentPage * ITEMS_PER_PAGE
+    );
+  }, [leaves, currentPage]);
+
+  const totalPages = leaves ? Math.ceil(leaves.length / ITEMS_PER_PAGE) : 0;
   const settings = useQuery(api.functions.settings.getSettings);
 
   const form = useForm<z.infer<typeof leaveSchema>>({
@@ -384,14 +406,14 @@ export default function LeavesPage() {
                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
-                ) : leaves.length === 0 ? (
+                ) : paginatedLeaves.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                       No leave requests found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  leaves.map((leave) => (
+                  paginatedLeaves.map((leave) => (
                     <TableRow key={leave._id}>
                       <TableCell className="capitalize font-medium">{leave.type}</TableCell>
                       <TableCell>{format(new Date(leave.startDate), "PP")}</TableCell>
@@ -423,6 +445,9 @@ export default function LeavesPage() {
                                   Processed on {format(new Date(leave.processedAt), "PPpp")}
                                 </p>
                               )}
+                              <p className="text-xs text-muted-foreground pt-2">
+                                Applied on {format(new Date(leave.appliedAt), "PPpp")}
+                              </p>
                             </div>
                           </PopoverContent>
                         </Popover>
@@ -433,6 +458,49 @@ export default function LeavesPage() {
               </TableBody>
             </Table>
           </div>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-4 mt-4 border-t">
+              <div className="text-sm text-gray-500">
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                {Math.min(currentPage * ITEMS_PER_PAGE, leaves?.length || 0)} of{" "}
+                {leaves?.length || 0} requests
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className="w-8"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

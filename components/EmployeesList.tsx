@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, Eye, Building2, Mail, User, Briefcase, Calendar, DollarSign } from "lucide-react";
+import { Search, Loader2, Eye, Building2, Mail, User, Briefcase, Calendar, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -27,6 +27,8 @@ import { Button } from "@/components/ui/button";
 export function EmployeesList() {
   const [search, setSearch] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Employees = candidates with status "hired"
   const hiredCandidates = useQuery(api.functions.candidates.getCandidatesByStatus, {
@@ -41,6 +43,17 @@ export function EmployeesList() {
       emp.email.toLowerCase().includes(search.toLowerCase()) ||
       emp.department?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+  const paginatedEmployees = filteredEmployees.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setCurrentPage(1);
+  };
 
   const totalPackage = employees.reduce((sum, e) => sum + (e.package ?? 0), 0);
   const avgSalary = employees.length > 0 ? Math.round(totalPackage / employees.length) : 0;
@@ -97,7 +110,7 @@ export function EmployeesList() {
           <Input
             placeholder="Search employees..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -105,81 +118,126 @@ export function EmployeesList() {
 
       {/* Employee Table */}
       <Card>
-        <CardContent className="p-0 overflow-auto max-h-[60vh]">
+        <CardContent className="p-0">
           {hiredCandidates === undefined ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Package</TableHead>
-                  <TableHead>Hired Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEmployees.length === 0 ? (
+            <>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="text-center py-8 text-gray-500"
-                    >
-                      {search
-                        ? "No employees match your search"
-                        : "No hired employees yet. Hire candidates from the Candidates page."}
-                    </TableCell>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Package</TableHead>
+                    <TableHead>Hired Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  filteredEmployees.map((employee) => (
-                    <TableRow key={employee._id}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{employee.name}</span>
-                          <span className="text-xs text-muted-foreground">{employee.email}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{employee.role ?? "—"}</TableCell>
-                      <TableCell>
-                        {employee.department ? (
-                          <Badge variant="outline">{employee.department}</Badge>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell className="capitalize">
-                        {employee.offerType ?? "—"}
-                      </TableCell>
-                      <TableCell>
-                        {employee.package
-                          ? `$${employee.package.toLocaleString()}`
-                          : "—"}
-                      </TableCell>
-                      <TableCell suppressHydrationWarning>
-                        {employee.hiredAt
-                          ? new Date(employee.hiredAt).toLocaleDateString()
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedEmployee(employee)}
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                </TableHeader>
+                <TableBody>
+                  {paginatedEmployees.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={7}
+                        className="text-center py-8 text-gray-500"
+                      >
+                        {search
+                          ? "No employees match your search"
+                          : "No hired employees yet. Hire candidates from the Candidates page."}
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    paginatedEmployees.map((employee) => (
+                      <TableRow key={employee._id}>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{employee.name}</span>
+                            <span className="text-xs text-muted-foreground">{employee.email}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{employee.role ?? "—"}</TableCell>
+                        <TableCell>
+                          {employee.department ? (
+                            <Badge variant="outline">{employee.department}</Badge>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {employee.offerType ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          {employee.package
+                            ? `$${employee.package.toLocaleString()}`
+                            : "—"}
+                        </TableCell>
+                        <TableCell suppressHydrationWarning>
+                          {employee.hiredAt
+                            ? new Date(employee.hiredAt).toLocaleDateString()
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSelectedEmployee(employee)}
+                            title="View Details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-4 border-t">
+                  <div className="text-sm text-gray-500">
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredEmployees.length)} of{" "}
+                    {filteredEmployees.length} employees
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="w-8"
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
