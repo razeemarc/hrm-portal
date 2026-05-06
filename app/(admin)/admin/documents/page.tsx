@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -14,7 +15,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileText, Check, X, Eye, Loader2, ExternalLink } from "lucide-react";
+import { 
+  FileText, 
+  Check, 
+  X, 
+  Eye, 
+  Loader2, 
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -27,6 +37,10 @@ const docTypeLabels: Record<string, string> = {
 };
 
 export default function DocumentsPage() {
+  const [pendingPage, setPendingPage] = useState(1);
+  const [allDocsPage, setAllDocsPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   // ── Convex queries ──
   const pendingDocs = useQuery(api.functions.documents.getPendingDocuments);
   const allDocs = useQuery(api.functions.documents.getDocuments);
@@ -36,6 +50,25 @@ export default function DocumentsPage() {
 
   const verifiedCount = allDocs?.filter((d) => d.status === "verified").length ?? 0;
   const rejectedCount = allDocs?.filter((d) => d.status === "rejected").length ?? 0;
+
+  const paginatedPending = useMemo(() => {
+    if (!pendingDocs) return [];
+    return pendingDocs.slice(
+      (pendingPage - 1) * ITEMS_PER_PAGE,
+      pendingPage * ITEMS_PER_PAGE
+    );
+  }, [pendingDocs, pendingPage]);
+
+  const paginatedAll = useMemo(() => {
+    if (!allDocs) return [];
+    return allDocs.slice(
+      (allDocsPage - 1) * ITEMS_PER_PAGE,
+      allDocsPage * ITEMS_PER_PAGE
+    );
+  }, [allDocs, allDocsPage]);
+
+  const totalPendingPages = pendingDocs ? Math.ceil(pendingDocs.length / ITEMS_PER_PAGE) : 0;
+  const totalAllPages = allDocs ? Math.ceil(allDocs.length / ITEMS_PER_PAGE) : 0;
 
   const handleVerify = async (
     docId: string,
@@ -126,7 +159,7 @@ export default function DocumentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendingDocs.map((doc) => (
+                {paginatedPending.map((doc) => (
                   <TableRow key={doc._id}>
                     <TableCell>
                       <div>
@@ -192,6 +225,49 @@ export default function DocumentsPage() {
               </TableBody>
             </Table>
           )}
+          {/* Pagination for Pending Documents */}
+          {totalPendingPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-4 border-t">
+              <div className="text-sm text-gray-500">
+                Showing {(pendingPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                {Math.min(pendingPage * ITEMS_PER_PAGE, pendingDocs?.length || 0)} of{" "}
+                {pendingDocs?.length || 0} documents
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPendingPage((p) => Math.max(1, p - 1))}
+                  disabled={pendingPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPendingPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={pendingPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPendingPage(page)}
+                      className="w-8"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPendingPage((p) => Math.min(totalPendingPages, p + 1))}
+                  disabled={pendingPage === totalPendingPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -222,7 +298,7 @@ export default function DocumentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allDocs.map((doc) => (
+                {paginatedAll.map((doc) => (
                   <TableRow key={doc._id}>
                     <TableCell className="font-medium">
                       <Link
@@ -274,6 +350,49 @@ export default function DocumentsPage() {
                 ))}
               </TableBody>
             </Table>
+          )}
+          {/* Pagination for All Documents */}
+          {totalAllPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-4 border-t">
+              <div className="text-sm text-gray-500">
+                Showing {(allDocsPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                {Math.min(allDocsPage * ITEMS_PER_PAGE, allDocs?.length || 0)} of{" "}
+                {allDocs?.length || 0} documents
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAllDocsPage((p) => Math.max(1, p - 1))}
+                  disabled={allDocsPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalAllPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={allDocsPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setAllDocsPage(page)}
+                      className="w-8"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAllDocsPage((p) => Math.min(totalAllPages, p + 1))}
+                  disabled={allDocsPage === totalAllPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

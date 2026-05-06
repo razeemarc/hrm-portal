@@ -25,7 +25,7 @@ const navigation = [
   { name: "Offers", href: "/admin/offers", icon: ScrollText },
   { name: "Employees", href: "/admin/employees", icon: Building2 },
   { name: "Leaves", href: "/admin/leaves", icon: CalendarDays },
-  { name: "Management", href: "/admin/management", icon: ClipboardCheck },
+  { name: "Attendance", href: "/admin/management", icon: ClipboardCheck },
   { name: "User Management", href: "/admin/dashboard/user-management", icon: UserCog },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
@@ -77,7 +77,7 @@ export default function DashboardLayout({
         "Offers",
         "Employees",
         "Leaves",
-        "Management",
+        "Attendance",
         "Settings",
       ].includes(item.name);
     }

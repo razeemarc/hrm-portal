@@ -42,7 +42,9 @@ import {
   UserCheck,
   Edit,
   ShieldAlert,
-  AlertTriangle
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -63,6 +65,8 @@ export function UserManagementList({ onEdit }: UserManagementListProps) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [userToToggle, setUserToToggle] = useState<any>(null);
   const [isToggling, setIsToggling] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const users = useQuery(api.functions.auth.getUsers);
   const toggleStatus = useMutation(api.functions.auth.toggleUserBlockStatus);
@@ -135,6 +139,17 @@ export function UserManagementList({ onEdit }: UserManagementListProps) {
     });
   }, [managementUsers, search]);
 
+  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setCurrentPage(1);
+  };
+
   const hrCount = managementUsers.filter((user) => user.role === "hr").length;
   const adminCount = managementUsers.filter((user) => user.role === "admin").length;
   const employeeCount = managementUsers.filter((user) => user.role === "employee").length;
@@ -197,126 +212,171 @@ export function UserManagementList({ onEdit }: UserManagementListProps) {
         <Input
           placeholder="Search users..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="pl-10"
         />
       </div>
 
       <Card>
-        <CardContent className="max-h-[60vh] overflow-auto p-0">
+        <CardContent className="p-0">
           {users === undefined ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.length === 0 ? (
+            <>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="py-8 text-center text-gray-500">
-                      {search
-                        ? "No users match your search."
-                        : "No management users created yet."}
-                    </TableCell>
+                    <TableHead>User</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
-                ) : (
-                  filteredUsers.map((user) => (
-                    <TableRow key={user._id} className={user.status === "blocked" ? "bg-red-50/50" : ""}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium flex items-center gap-2">
-                            {user.name}
-                            {user.status === "blocked" && (
-                              <Badge variant="destructive" className="h-4 px-1 text-[10px] uppercase">
-                                Restricted
-                              </Badge>
-                            )}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{user.email}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="gap-1">
-                          {user.role === "admin" ? (
-                            <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
-                          ) : user.role === "hr" ? (
-                            <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
-                          ) : (
-                            <BriefcaseBusiness className="h-3.5 w-3.5" />
-                          )}
-                          {roleLabelMap[user.role ?? ""] ?? "Unknown"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.status === "blocked" ? (
-                          <div className="flex items-center gap-1.5 text-red-600 font-medium text-xs">
-                            <ShieldAlert className="h-3.5 w-3.5" />
-                            Account restricted
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 text-green-600 font-medium text-xs">
-                            <UserCheck className="h-3.5 w-3.5" />
-                            Active
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell suppressHydrationWarning>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <UserRound className="h-4 w-4" />
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            render={(props) => (
-                              <Button {...props} variant="ghost" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            )}
-                          />
-                          <DropdownMenuContent align="end" className="w-[160px]">
-                            <DropdownMenuGroup>
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => onEdit(user)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleToggleBlock(user)}
-                                className={user.status === "blocked" ? "text-green-600" : "text-red-600"}
-                              >
-                                {user.status === "blocked" ? (
-                                  <>
-                                    <UserCheck className="mr-2 h-4 w-4" />
-                                    Unblock
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserX className="mr-2 h-4 w-4" />
-                                    Block
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                </TableHeader>
+                <TableBody>
+                  {paginatedUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-8 text-center text-gray-500">
+                        {search
+                          ? "No users match your search."
+                          : "No management users created yet."}
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    paginatedUsers.map((user) => (
+                      <TableRow key={user._id} className={user.status === "blocked" ? "bg-red-50/50" : ""}>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium flex items-center gap-2">
+                              {user.name}
+                              {user.status === "blocked" && (
+                                <Badge variant="destructive" className="h-4 px-1 text-[10px] uppercase">
+                                  Restricted
+                                </Badge>
+                              )}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{user.email}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="gap-1">
+                            {user.role === "admin" ? (
+                              <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
+                            ) : user.role === "hr" ? (
+                              <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
+                            ) : (
+                              <BriefcaseBusiness className="h-3.5 w-3.5" />
+                            )}
+                            {roleLabelMap[user.role ?? ""] ?? "Unknown"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {user.status === "blocked" ? (
+                            <div className="flex items-center gap-1.5 text-red-600 font-medium text-xs">
+                              <ShieldAlert className="h-3.5 w-3.5" />
+                              Account restricted
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-green-600 font-medium text-xs">
+                              <UserCheck className="h-3.5 w-3.5" />
+                              Active
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell suppressHydrationWarning>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <UserRound className="h-4 w-4" />
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={(props) => (
+                                <Button {...props} variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              )}
+                            />
+                            <DropdownMenuContent align="end" className="w-[160px]">
+                              <DropdownMenuGroup>
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => onEdit(user)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit User
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleToggleBlock(user)}
+                                  className={user.status === "blocked" ? "text-green-600" : "text-red-600"}
+                                >
+                                  {user.status === "blocked" ? (
+                                    <>
+                                      <UserCheck className="mr-2 h-4 w-4" />
+                                      Unblock
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UserX className="mr-2 h-4 w-4" />
+                                      Block
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                              </DropdownMenuGroup>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-4 border-t">
+                  <div className="text-sm text-gray-500">
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredUsers.length)} of{" "}
+                    {filteredUsers.length} users
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="w-8"
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

@@ -6,9 +6,12 @@ import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { CalendarDays, CheckCircle2, Clock3, Users, XCircle } from "lucide-react";
-import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarDays, Calendar as CalendarIcon, CheckCircle2, Clock3, Users, XCircle } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const formatTime = (value?: number) => {
   if (!value) return "--";
@@ -89,18 +92,42 @@ export default function ManagementPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Management</h1>
+          <h1 className="text-2xl font-bold">Attendance</h1>
           <p className="text-sm text-muted-foreground">
             Attendance overview with present, absent, check-in, and check-out details.
           </p>
         </div>
         <div className="w-full md:w-64">
           <label className="mb-2 block text-sm font-medium">Attendance Date</label>
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
+          <Popover>
+            <PopoverTrigger
+              render={(props) => (
+                <Button
+                  {...props}
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-10",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(parseISO(selectedDate), "PPP") : <span>Pick a date</span>}
+                </Button>
+              )}
+            />
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={parseISO(selectedDate)}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(format(date, "yyyy-MM-dd"));
+                  }
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
