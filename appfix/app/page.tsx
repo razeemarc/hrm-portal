@@ -1,65 +1,86 @@
-import Image from "next/image";
+import Link from "next/link";
+
+const navItems = ["Login", "Wishlist", "Cart"];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen bg-[#f4efe7] text-slate-900">
+      <header className="sticky top-0 z-20 border-b border-black/10 bg-white/85 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            className="flex shrink-0 items-center gap-3 text-2xl font-black tracking-[0.2em] text-black"
+            aria-label="Home"
+          >
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black text-sm text-white">
+              L
+            </span>
+            <span>LOGO</span>
+          </Link>
+
+          <div className="relative flex min-w-0 flex-1 items-center">
+            <input
+              type="search"
+              placeholder="Search"
+              aria-label="Search"
+              className="h-12 w-full rounded-full border border-black/10 bg-[#f9f7f2] px-5 text-sm outline-none transition placeholder:text-slate-500 focus:border-black/30 focus:bg-white"
+            />
+          </div>
+
+          <nav className="hidden items-center gap-3 md:flex">
+            {navItems.map((item) => (
+              <a
+                key={item}
+                href="#"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-black/10 bg-white px-4 text-sm font-medium text-slate-800 transition hover:border-black/20 hover:bg-black hover:text-white"
+              >
+                {item}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      <section className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8 lg:py-16">
+        <div className="rounded-[2rem] bg-[#efe6d7] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.06)] sm:p-12">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-600">
+            Home page
+          </p>
+          <h1 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-6xl">
+            A clean storefront home page with the exact navbar you asked for.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-6 max-w-xl text-lg leading-8 text-slate-700">
+            This replaces the current starter screen and gives you a simple
+            homepage with Search, Logo, Login, Wishlist, and Cart in the top
+            navigation.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        <aside className="grid gap-5">
+          <div className="rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">
+              Navbar items
+            </p>
+            <div className="mt-5 grid gap-3">
+              <div className="rounded-2xl border border-black/10 bg-[#faf7f2] px-4 py-4 text-sm font-medium text-slate-800">
+                Search
+              </div>
+              <div className="rounded-2xl border border-black/10 bg-[#faf7f2] px-4 py-4 text-sm font-medium text-slate-800">
+                Logo
+              </div>
+              <div className="rounded-2xl border border-black/10 bg-[#faf7f2] px-4 py-4 text-sm font-medium text-slate-800">
+                Login
+              </div>
+              <div className="rounded-2xl border border-black/10 bg-[#faf7f2] px-4 py-4 text-sm font-medium text-slate-800">
+                Wishlist
+              </div>
+              <div className="rounded-2xl border border-black/10 bg-[#faf7f2] px-4 py-4 text-sm font-medium text-slate-800">
+                Cart
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
   );
 }
